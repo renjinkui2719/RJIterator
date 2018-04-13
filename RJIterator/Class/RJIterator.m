@@ -294,7 +294,7 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 
 + (void)checkGeneratorSignature:(NSMethodSignature *)signature is_block:(BOOL)is_block{
     //返回值必须是id或者void
-    BOOL ret_valid = signature.methodReturnType[0] == 'v' || signature.methodReturnType[0] == '@';
+    __unused BOOL ret_valid = signature.methodReturnType[0] == 'v' || signature.methodReturnType[0] == '@';
     NSAssert(ret_valid, @"return type of generator must be id or void");
     BOOL args_valid = YES;
     if (is_block) {
