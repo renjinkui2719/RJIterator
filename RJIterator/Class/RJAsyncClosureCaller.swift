@@ -8,8 +8,8 @@
 
 import Foundation
 
-class RJAsyncClosureCaller: NSObject {
-    static func call(closure: Any, finish: @escaping RJAsyncCallback) {
+public class RJAsyncClosureCaller: NSObject {
+   public static func call(closure: Any, finish: @escaping RJAsyncCallback) {
         (closure as? RJAsyncClosure)?(finish)
     }
 }
