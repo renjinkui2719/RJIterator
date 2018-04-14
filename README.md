@@ -1,24 +1,19 @@
 生成器与迭代器是ES6和Python的重要概念，初次接触后感受到它们的强大，尤其是在异步调用方面的运用.RJIterator是该功能的OC实现,可以在OC/Swift项目中使用.
 
-#### 1. 异步的优化
+#### 1. 异步的运用
 
-##### 异步调用
-在RJIterator中, 任何返回RJAsyncClosure类型的OC/Swift方法都属于异步调用，比如:
-```Objective-C
-- (RJAsyncClosure)foo:(id)arg1 arg2:(id)arg2 /*...其他参数*/{
-    return ^(RJAsyncCallback callback){
-        do_something(^{
-            callback(data, error);
-        });
-    };
-}
-```
-RJAsyncClosure 是RJIterator定义的闭包类型： 
+##### 异步任务
+在RJIterator中,一个RJAsyncClosure类型的闭包就是一个异步任务,可以被RJIterator调度
+
+RJAsyncClosure 是RJIterator定义的闭包类型：
+
 ```Objective-C
 typedef void (^RJAsyncCallback)(id _Nullable value, id _Nullable error);
 typedef void (^RJAsyncClosure)(RJAsyncCallback _Nonnull callback);
 ```
-返回该类型可以理解为返回了一个包含任务内容的代码块，以供稍后调度.
+
+同时，RJIterator兼容PromiseKit，RJIterator会在运行时判断，如果一个对象是AnyPromise类型,也是异步任务.
+
 
 #### 异步块
 使用rj_async声明一个异步块,表示代码块内部将以异步方式调度执行
@@ -100,10 +95,12 @@ rj_async {
 }
 ```
 
-rj_async块内部完全以同步方式编写，通过把异步任务包装进rj_yield()，rj_async会自动以异步方式调度它们，不会阻塞主流程，在主观感受上，它们是同步代码,功能逻辑也比较清晰.
+rj_async块内部完全以同步方式编写，通过把异步任务包装进rj_yield()，rj_async会自动以异步方式调度它们，不会阻塞主流程，在主观感受上，它们是同步代码,功能逻辑也比较清晰. 
+
+RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步块内直接传给rj_yield()，它会被正确异步调度, 但是只支持AnyPromise,如果不是AnyPromise,如果可以转化的话，使用PromiseKit提供的相关方法转为AnyPromise再使用.
 
 
-##### 对比普通回调发送编写代码 
+##### 对比普通回调方式编写代码 
 如果以普通回调方式,则不论如何逃不出如下模式:
 
 ```Objective-C
@@ -214,3 +211,88 @@ http://es6.ruanyifeng.com/#docs/generator
 
 (2)返回值为id,接受一个参数的Swift函数,闭包.
 
+生成器不能直接调用，需要通过RJIterator类的初始方法创建迭代器，再通过迭代器访问生成器:
+```Objective-C
+- (id _Nonnull)initWithFunc:(RJGenetarorFunc _Nonnull)func arg:(id _Nullable)arg;
+- (id _Nonnull)initWithTarget:(id _Nonnull)target selector:(SEL _Nonnull)selector, ...;
+- (id _Nonnull)initWithBlock:(id _Nonnull)block, ...;
+- (id _Nonnull)initWithTarget:(id _Nonnull)target selector:(SEL _Nonnull)selector args:(NSArray *_Nullable)args;
+- (id _Nonnull)initWithBlock:(id _Nullable (^ _Nonnull)(id _Nullable))block arg:(id _Nullable)arg;
+- (id _Nonnull)initWithStandardBlock:(dispatch_block_t _Nonnull)block;
+```
+
+
+##### 低配版聊天机器人
+假设talk是个会说话的机器人，我敲一下说一句.则可以如下实现talk
+
+```Swift
+func talk(arg: Any?) -> Any? {
+    rj_yield("Hello, How are you?");
+    rj_yield("Today is Friday");
+    rj_yield("So yestday is Thursday");
+    rj_yield("And tomorrow is Saturday");
+    rj_yield("Over");
+    return "==talk done==";
+}
+```
+
+这时候talk就是一个生成器,每次调用都会返回“下一句话”.他好像会记住上次说到哪了.但是调用方式必须是通过迭代器,所以下面首先生成了talk的迭代器，然后通过next方法一次获得一句应答.
+
+```Swift
+var it: RJIterator;
+var r: RJResult;
+
+it = RJIterator.init(withFunc: talk, arg: nil)
+r = it.next()
+print("value: \(r.value), done:\(r.done)")
+//==> value: Hello How are you?, done:NO
+
+r = it.next()
+print("value: \(r.value), done:\(r.done)")
+//==> value: Today is Friday, done:NO
+
+r = it.next()
+print("value: \(r.value), done:\(r.done)")
+//==> value: So yestday is Thursday, done:NO
+
+r = it.next()
+print("value: \(r.value), done:\(r.done)")
+//==> value: And tomorrow is Saturday, done:NO
+
+r = it.next()
+print("value: \(r.value), done:\(r.done)")
+//==> value: Over, done:NO
+
+r = it.next()
+print("value: \(r.value), done:\(r.done)")
+//==> value: ==talk done==, done:YES
+
+r = it.next()
+print("value: \(r.value), done:\(r.done)")
+//==> value: ==talk done==, done:YES
+```
+RJResult是迭代器RJIterator每次next返回的结果值, 其中value表示结果数据, done表示是否迭代结束，结束表示生成器内部已经执行了尾部或者某处的return.
+
+我觉得还不够好，我想要告诉机器人我的名字，以增进彼此感情.
+修改talk:
+```Swift
+func talk(name: Any?) -> Any? {
+    rj_yield("Hello \(name), How are you?");
+    rj_yield("Today is Friday");
+    rj_yield("So yestday is Thursday");
+    rj_yield("And tomorrow is Saturday");
+    rj_yield("Over");
+    return "==talk done==";
+}
+```
+
+并在创建迭代器的时候给它传参:
+```Swift
+it = RJIterator.init(withFunc: talk, arg: "爱德华")
+```
+
+这时候talk
+
+
+
+####
