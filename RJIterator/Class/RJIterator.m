@@ -9,7 +9,7 @@
 #import "RJIterator.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
-#import <RJIterator-Swift.h>
+#import <RJIterator/RJIterator-Swift.h>
 //#import "RJIterator-Swift.h"
 
 #if __has_feature(objc_arc)
