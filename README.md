@@ -14,54 +14,55 @@
         callback(response.data, error);
     });
 }
-- (void)loadIntroduceFileWithCallback:(void (^)(id value, id error))callback{
-    NSString *path = @"...";
-    read(path, ^(id data, error) {
-        callback(data.encodeUtfString, error);
+- (void)makeEffect:(UIImage *)image callback:(void (^)(id value, id error))callback{
+    make(image, ^(id data, error) {
+        callback(data, error);
     });
 }
 
-[ProgressHud show];
-[self loginWithAccount:@"112233" pwd:@"112345" callback:^(id value, id error) {
-    if (error) {
-        [ProgressHud show];
-        NSLog(@"Error happened:%@", error);
-    }
-    else {
-        NSDictionary *json = (NSDictionary *)value;
-        [self queryInfoWithUid:json[@"uid"] token:json[@"token"] callback:^(id value, id error) {
-            if (error) {
-                [ProgressHud show];
-                NSLog(@"Error happened:%@", error);
-            }
-            else {
-                NSDictionary *json = (NSDictionary *)value;
-                [self downloadHeadImage:json[@"url"] callback:^(id value, id error) {
-                    if (error) {
-                        [ProgressHud show];
-                        NSLog(@"Error happened:%@", error);
-                    }
-                    else {
-                        UIImage *image = (UIImage *)image;
-                        [self loadIntroduceFileWithCallback:^(id value, id error) {
-                            if (error) {
-                                [ProgressHud show];
-                                NSLog(@"Error happened:%@", error);
-                            }
-                            else {
-                                [ProgressHud dismiss];
-                                NSString *introduce = value;
-                                /*
-                                 All done
-                                 */
-                            }
-                        }];
-                    }
-                }];
-            }
-        }];
-    }
-}];
+- (void)onLogin:(id)sender {
+    [ProgressHud show];
+    [self loginWithAccount:@"112233" pwd:@"112345" callback:^(id value, id error) {
+        if (error) {
+            [ProgressHud show];
+            NSLog(@"Error happened:%@", error);
+        }
+        else {
+            NSDictionary *json = (NSDictionary *)value;
+            [self queryInfoWithUid:json[@"uid"] token:json[@"token"] callback:^(id value, id error) {
+                if (error) {
+                    [ProgressHud show];
+                    NSLog(@"Error happened:%@", error);
+                }
+                else {
+                    NSDictionary *json = (NSDictionary *)value;
+                    [self downloadHeadImage:json[@"url"] callback:^(id value, id error) {
+                        if (error) {
+                            [ProgressHud show];
+                            NSLog(@"Error happened:%@", error);
+                        }
+                        else {
+                            UIImage *image = (UIImage *)value;
+                            [self makeEffect:image callback:^(id value, id error) {
+                                if (error) {
+                                    [ProgressHud show];
+                                    NSLog(@"Error happened:%@", error);
+                                }
+                                else {
+                                    [ProgressHud dismiss];
+                                    UIImage *image = (UIImage *)value;
+                                    /*
+                                     All done
+                                     */
+                                }
+                            }];
+                        }
+                    }];
+                }
+            }];
+        }
+    }];
+}
 ```
 
 ```Objective-C
@@ -86,11 +87,10 @@
         });
     };
 }
-- (RJAsyncClosure)loadIntroduceFile{
+- (RJAsyncClosure)makeEffect:(UIImage *)image{
     return ^(RJAsyncCallback callback){
-        NSString *path = @"...";
-        read(path, ^(id data, error) {
-            callback(data.encodeUtfString, error);
+        make(image, ^(id data, error) {
+            callback(data, error);
         });
     };
 }
@@ -100,7 +100,7 @@
         NSDictionary *login_josn = rj_yield( [self loginWithAccount:@"112233" pwd:@"12345"] );
         NSDictionary *query_json = rj_yield( [self queryInfoWithUid:login_josn[@"uid"] token:login_josn[@"token"]] );
         UIImage *image = rj_yield( [self downloadHeadImage:query_json[@"url"]] );
-        NSString *text = rj_yield( [self loadIntroduceFile] );
+        NSString *beautiful_image = rj_yield( [self makeEffect:image] );
         NSLog(@"all done");
     })
     .error(^(id error) {
