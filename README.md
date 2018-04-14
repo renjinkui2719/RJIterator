@@ -198,20 +198,21 @@ RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步�
 
 #### 2.生成器与迭代器
 
-生成器与迭代器的概念及用法, 以及在异步调用上的运用. 可以参考ES6教程
+生成器与迭代器的概念及用法. 可以参考ES6教程
 
 http://www.infoq.com/cn/articles/es6-in-depth-generators
 
 http://es6.ruanyifeng.com/#docs/generator
 
-##### 在RJIterator中,满足以下条件的c/Objective-C/Swift方法,闭包即可以作为生成器:
+##### 在RJIterator中,满足以下条件的C/Objective-C/Swift方法,闭包即可以作为生成器:
 
 (1)返回值为id或void,接受最多8个id参数的OC类方法,实例方法,block;c函数;Swift类方法,实例方法.
 
 
 (2)返回值为id,接受一个参数的Swift函数,闭包.
 
-生成器不能直接调用，需要通过RJIterator类的初始方法创建迭代器，再通过迭代器访问生成器:
+生成器不能直接调用，需要通过RJIterator类的初始化方法创建迭代器，再通过迭代器访问生成器:
+
 ```Objective-C
 - (id _Nonnull)initWithFunc:(RJGenetarorFunc _Nonnull)func arg:(id _Nullable)arg;
 - (id _Nonnull)initWithTarget:(id _Nonnull)target selector:(SEL _Nonnull)selector, ...;
@@ -288,11 +289,51 @@ func talk(name: Any?) -> Any? {
 
 并在创建迭代器的时候给它传参:
 ```Swift
-it = RJIterator.init(withFunc: talk, arg: "爱德华")
+it = RJIterator.init(withFunc: talk, arg: "乌卡卡")
 ```
 
-这时候talk
+这时候第一次调用next,将如下返回:
+```
+value: Hello 乌卡卡, How are you?, done:NO
+```
+
+##### 新的需求
+在第5次调和talk对话的时候，它回答了"Over"，并且再次迭代(第6次)它就会结束, 但是我有时候还想再聊几轮,所以我可以在第6次迭代的时候,给他传命令，告诉机器人再来一发。
+
+修改talk:
+```Swift
+fileprivate func talk(name: Any?) -> Any? {
+    var cmd = ""
+    repeat {
+        rj_yield("Hello \(name ?? ""), How are you?");
+        rj_yield("Today is Friday");
+        rj_yield("So yestday is Thursday");
+        rj_yield("And tomorrow is Saturday");
+        cmd = rj_yield("Over") as? String ?? "";
+    }while cmd != "Over"
+    
+    return "==talk done==";
+}
+```
+第6次调用next时传值
+```Swift
+r = it.next("again")
+print("value: \(r.value), done:\(r.done)")
+//value: value: Hello 乌卡卡, How are you?, done:NO
+```
+
+它又从头开始了,其中原理是: 
+###### 给next传的值将作为生成器内部上次rj_yield的新返回值,并在下次生成器“苏醒”的时候付给左边"cmd"，如果next不传参,则该返回值就是rj_yield()本来包装的那个值. 通过这个特性，可以通过生成器与迭代器变种出许多高效的功能.rj_async块就是基于这个原理.
 
 
+### 安装
+pod
 
-####
+```
+pod "RJIterator"
+```
+
+手动: 
+
+RJIterator基于MRC管理内存,混有一个Swift文件， 所以手动添加进去还要改配置，加Bridge Header, 比较麻烦,建议pod
+
