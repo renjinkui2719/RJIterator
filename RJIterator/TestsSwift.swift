@@ -47,16 +47,16 @@ func count(_: Any?) -> Any? {
 class TestsSwift: NSObject {
     
     static func verboseTests() {
-//        test0()
-//        test1()
-//        test2()
-//        test3()
-//        test4()
-//        test5()
-//        test6()
-//        test7()
+        test0()
+        test1()
+        test2()
+        test3()
+        test4()
+        test5()
+        test6()
+        test7()
         async1()
-//        async2()
+        async2()
     }
     
     static func test0() {
@@ -379,7 +379,7 @@ class TestsSwift: NSObject {
     static func s2_error() -> RJAsyncClosure {
         return { (callback: @escaping RJAsyncCallback) in
             DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 2, execute: {
-                callback(["b1": 1, "b2":2], /*NSError.init(domain: "s2", code: -1, userInfo: nil)*/nil);
+                callback(["b1": 1, "b2":2], NSError.init(domain: "s2", code: -1, userInfo: nil));
             })
         };
     }
