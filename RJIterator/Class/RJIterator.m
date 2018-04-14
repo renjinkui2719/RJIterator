@@ -58,7 +58,7 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 }
 
 - (void)dealloc {
-    NSLog(@"== %@ dealoc", self);
+    //NSLog(@"== %@ dealoc", self);
     if (_error_handler) {
         Block_release(_error_handler);
     }
@@ -98,7 +98,7 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 }
 
 - (void)dealloc {
-    NSLog(@"== %@ dealoc", self);
+    //NSLog(@"== %@ dealoc", self);
     [_value release];
     [_error release];
     [super dealloc];
@@ -170,7 +170,7 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 }
 
 - (void)dealloc {
-    NSLog(@"== %@ dealoc", self);
+   // NSLog(@"== %@ dealoc", self);
     
     [_args release];
     [_target release];
