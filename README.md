@@ -1,10 +1,6 @@
-生成器与迭代器的概念及用法, 以及在异步调用上的运用. 可以参考ES6教程
+生成器与迭代器是ES6和Python的重要概念，初次接触后感受到它们的强大，尤其是在异步调用方面的运用.RJIterator是该功能的OC实现,可以在OC/Swift项目中使用.
 
-http://www.infoq.com/cn/articles/es6-in-depth-generators
-
-http://es6.ruanyifeng.com/#docs/generator
-
-#### 1. 异步
+#### 1. 异步的优化
 
 ##### 异步调用
 在RJIterator中, 任何返回RJAsyncClosure类型的OC/Swift方法都属于异步调用，比如:
@@ -35,13 +31,13 @@ rj_async {
     //出错处理
 })
 .finally(^{
-    //收尾
+    //收尾 不论成功还是出错都会执行
 });
 ```
 
 #### 以登录举例
 
-比如有这样的登录场景: 登录成功 -> 查询个人信息 -> 下载头像 -> 给头像加特效 -> 进入详情.
+比如有这样的登录场景: 登录成功 --> 查询个人信息 --> 下载头像 --> 给头像加特效 --> 进入详情.
 
 要求每一步必须在上一步完成之后进行. 该功能可以使用异步块如下实现
 
@@ -84,7 +80,6 @@ rj_async {
 ```
 
 ##### （2)以同步方式编写代码 
-
 ```Objective-C
 - (void)onLogin:(id)sender {
     [ProgressHud show];
@@ -93,21 +88,25 @@ rj_async {
         NSDictionary *query_json = rj_yield( [self queryInfoWithUid:login_josn[@"uid"] token:login_josn[@"token"]] );
         UIImage *image = rj_yield( [self downloadHeadImage:query_json[@"url"]] );
         NSString *beautiful_image = rj_yield( [self makeEffect:image] );
-        NSLog(@"all done");
-    })
+        NSLog(@"all done");
+        //进入详情界面
+     })
     .error(^(id error) {
         NSLog(@"error happened");
     })
     .finally(^{
-        [ProgressHud dismise];
+        [ProgressHud dismiss];
     });
 }
-
 ```
+
+rj_async块内部完全以同步方式编写，通过把异步任务包装进rj_yield()，rj_async会自动以异步方式调度它们，不会阻塞主流程，在主观感受上，它们是同步代码,功能逻辑也比较清晰.
+
 
 ##### 对比普通回调发送编写代码 
 如果以普通回调方式,则不论如何逃不出如下模式:
-```
+
+```Objective-C
 - (void)loginWithAccount:(NSString *)account pwd:(NSString *)pwd callback:(void (^)(id value, id error))callback {
     post(@"/login", account, pwd, ^(id response, error) {
         callback(response.data, error);
@@ -133,28 +132,28 @@ rj_async {
     [ProgressHud show];
     [self loginWithAccount:@"112233" pwd:@"112345" callback:^(id value, id error) {
         if (error) {
-            [ProgressHud show];
+            [ProgressHud dismiss];
             NSLog(@"Error happened:%@", error);
         }
         else {
             NSDictionary *json = (NSDictionary *)value;
             [self queryInfoWithUid:json[@"uid"] token:json[@"token"] callback:^(id value, id error) {
                 if (error) {
-                    [ProgressHud show];
+                    [ProgressHud dismiss];
                     NSLog(@"Error happened:%@", error);
                 }
                 else {
                     NSDictionary *json = (NSDictionary *)value;
                     [self downloadHeadImage:json[@"url"] callback:^(id value, id error) {
                         if (error) {
-                            [ProgressHud show];
+                            [ProgressHud dismiss];
                             NSLog(@"Error happened:%@", error);
                         }
                         else {
                             UIImage *image = (UIImage *)value;
                             [self makeEffect:image callback:^(id value, id error) {
                                 if (error) {
-                                    [ProgressHud show];
+                                    [ProgressHud dismiss];
                                     NSLog(@"Error happened:%@", error);
                                 }
                                 else {
@@ -176,7 +175,9 @@ rj_async {
 这时 onLogin方法就掉进了传说中的回调地狱
 
 ##### 对比Promise链
-```
+```Objective-C
+[ProgressHud show];
+
 [self loginWithAccount:@"112233" pwd:@"12345"].promise
 .then(^(NSDictionary *json) {
     return [self queryInfoWithUid:json[@"uid"] token:json[@"token"]].promise
@@ -194,9 +195,17 @@ rj_async {
     NSLog(@"error happened");
 })
 .finally(^{
-    [ProgressHud dismise];
+    [ProgressHud dismiss];
 });
 ```
+
+#### 2.生成器与迭代器
+
+生成器与迭代器的概念及用法, 以及在异步调用上的运用. 可以参考ES6教程
+
+http://www.infoq.com/cn/articles/es6-in-depth-generators
+
+http://es6.ruanyifeng.com/#docs/generator
 
 ##### 在RJIterator中,满足以下条件的c/Objective-C/Swift方法,闭包即可以作为生成器:
 
@@ -205,40 +214,3 @@ rj_async {
 
 (2)返回值为id,接受一个参数的Swift函数,闭包.
 
-
-```Objective-C
-
-```
-
-```Objective-C
-- (RJAsyncClosure)loginWithAccount:(NSString *)account pwd:(NSString *)pwd {
-    return ^(RJAsyncCallback callback){
-        post(@"/login", account, pwd, ^(id response, error) {
-            callback(response.data, error);
-        });
-    };
-}
-- (RJAsyncClosure)queryInfoWithUid:(NSString *)uid token:(NSString *)token{
-    return ^(RJAsyncCallback callback){
-        get(@"query", uid, token, ^(id response, error) {
-            callback(response.data, error);
-        });
-    };
-}
-- (RJAsyncClosure)downloadHeadImage:(NSString *)url{
-    return ^(RJAsyncCallback callback){
-        get(@"file", url, ^(id response, error) {
-            callback(response.data, error);
-        });
-    };
-}
-- (RJAsyncClosure)makeEffect:(UIImage *)image{
-    return ^(RJAsyncCallback callback){
-        make(image, ^(id data, error) {
-            callback(data, error);
-        });
-    };
-}
-
-
-```
