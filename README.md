@@ -110,4 +110,24 @@
         [ProgressHud dismise];
     });
 }
+
+[self loginWithAccount:@"112233" pwd:@"12345"].promise
+.then(^(NSDictionary *json) {
+    return [self queryInfoWithUid:login_josn[@"uid"] token:login_josn[@"token"]].promise
+})
+.then(^(NSDictionary *json) {
+    return [self downloadHeadImage:json[@"url"]].promise
+})
+.then(^(UIImage *image) {
+    return [self makeEffect:image].promise
+})
+.then(^(UIImage *image) {
+    /*All done*/
+})
+.error(^(id error) {
+    NSLog(@"error happened");
+})
+.finally(^{
+    [ProgressHud dismise];
+});
 ```
