@@ -168,7 +168,7 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 }
 
 - (void)dealloc {
-    NSLog(@"== %@ dealoc", self);
+    //NSLog(@"== %@ dealoc", self);
     
     [_args release];
     [_target release];
@@ -516,7 +516,7 @@ RJAsyncEpilog * rj_async(dispatch_block_t block) {
         }
         if (!result.done) {
             id value = result.value;
-            NSString *desc = [value description];
+//            NSString *desc = [value description];
             //闭包
             if ([value isKindOfClass:NSClassFromString(@"__NSGlobalBlock__")] ||
                 [value isKindOfClass:NSClassFromString(@"__NSStackBlock__")] ||
@@ -541,7 +541,8 @@ RJAsyncEpilog * rj_async(dispatch_block_t block) {
                      [value isKindOfClass:NSClassFromString(@"_SwiftValue")] &&
                      [[value description] containsString:@"(Function)"]
                      ) {
-                [RJAsyncClosureCaller callWithClosure:value finish:^(id  _Nullable value, id  _Nullable error) {
+                RJAsyncClosureCaller *caller = [[RJAsyncClosureCaller alloc] init];
+                [caller callWithClosure:value finish:^(id  _Nullable value, id  _Nullable error) {
                     dispatch_async(dispatch_get_main_queue(), ^{
                         if (error) {
                             [result release];
@@ -551,6 +552,7 @@ RJAsyncEpilog * rj_async(dispatch_block_t block) {
                             [result release];
                             result = [iterator next:value].retain;
                         }
+                        [caller release];
                         step();
                     });
                 }];

@@ -9,7 +9,7 @@
 import Foundation
 
 public class RJAsyncClosureCaller: NSObject {
-   public static func call(closure: Any, finish: @escaping RJAsyncCallback) {
+   public func call(closure: Any, finish: @escaping RJAsyncCallback) -> Void {
         (closure as? RJAsyncClosure)?(finish)
     }
 }

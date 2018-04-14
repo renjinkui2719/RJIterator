@@ -9,27 +9,95 @@
 import UIKit
 
 fileprivate func talk(name: Any?) -> Any? {
-    rj_yield("Hello \(name ?? ""), How are you?");
-    rj_yield("Today is Friday");
-    rj_yield("So yestday is Thursday");
-    rj_yield("And tomorrow is Saturday");
-    rj_yield("Over");
+    var cmd = ""
+    repeat {
+        rj_yield("Hello \(name ?? ""), How are you?");
+        rj_yield("Today is Friday");
+        rj_yield("So yestday is Thursday");
+        rj_yield("And tomorrow is Saturday");
+        cmd = rj_yield("Over") as? String ?? "";
+    }while cmd != "Over"
+    
     return "==talk done==";
+}
+
+func count_1_3(_: Any?) -> Any? {
+    rj_yield(1)
+    rj_yield(2)
+    return 3
+}
+func count_4_5(_: Any?) -> Any? {
+    rj_yield(4)
+    rj_yield(5)
+    return 6
+}
+func count_7_9(_: Any?) -> Any? {
+    rj_yield(7)
+    rj_yield(8)
+    return 9
+}
+
+func count(_: Any?) -> Any? {
+    rj_yield(RJIterator.init(withFunc: count_1_3, arg: nil))
+    rj_yield(RJIterator.init(withFunc: count_4_5, arg: nil))
+    rj_yield(RJIterator.init(withFunc: count_7_9, arg: nil))
+    return nil
 }
 
 class TestsSwift: NSObject {
     
     static func verboseTests() {
-        test1()
-        test2()
-        test3()
-        test4()
-        test5()
-        test6()
-        test7()
+//        test0()
+//        test1()
+//        test2()
+//        test3()
+//        test4()
+//        test5()
+//        test6()
+//        test7()
         async1()
-        async2()
+//        async2()
     }
+    
+    static func test0() {
+        print("************************ Begin test0 *******************************");
+        var it: RJIterator;
+        var r: RJResult;
+        
+        it = RJIterator.init(withFunc: count, arg:nil)
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next("again")
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next("again")
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next("again")
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next("again")
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next("again")
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        print("************************ End test0 *******************************");
+    }
+
     
     static func test1() {
         print("************************ Begin test1 *******************************");
@@ -47,11 +115,26 @@ class TestsSwift: NSObject {
         print("value: \(r.value), done:\(r.done)")
         r = it.next()
         print("value: \(r.value), done:\(r.done)")
-        r = it.next()
+        r = it.next("again")
         print("value: \(r.value), done:\(r.done)")
         r = it.next()
         print("value: \(r.value), done:\(r.done)")
-        
+        r = it.next("again")
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next("again")
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next("again")
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next("again")
+        print("value: \(r.value), done:\(r.done)")
+        r = it.next()
+        print("value: \(r.value), done:\(r.done)")
         print("************************ End test1 *******************************");
     }
     
