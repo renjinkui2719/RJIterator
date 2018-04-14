@@ -188,7 +188,7 @@ RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步�
 .then(^(UIImage *image) {
     /*All done*/
 })
-.error(^(id error) {
+.catch(^(id error) {
     NSLog(@"error happened");
 })
 .finally(^{
