@@ -9,7 +9,8 @@
 #import "RJIterator.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
-#import "RJIterator-Swift.h"
+#import <RJIterator-Swift.h>
+//#import "RJIterator-Swift.h"
 
 #if __has_feature(objc_arc)
 //ARC下存在跳转导致的编译器生成的释放函数执行不到的问题
