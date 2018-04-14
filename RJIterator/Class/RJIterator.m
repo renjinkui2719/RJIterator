@@ -1,6 +1,6 @@
  //
 //  RJIterator.m
-//  RJGenerator
+//  RJIterator
 //
 //  Created by renjinkui on 2018/4/12.
 //  Copyright © 2018年 JK. All rights reserved.
@@ -9,9 +9,10 @@
 #import "RJIterator.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import "RJIterator-Swift.h"
 
 #if __has_feature(objc_arc)
-//ARC下存在跳转导致的 编译器生成的释放函数执行不到的问题
+//ARC下存在跳转导致的编译器生成的释放函数执行不到的问题
 #error RJIterator Must be compiled with MRC
 #endif
 
@@ -134,8 +135,6 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 @end
 
 @interface RJIterator()
-//@property (nonatomic, copy) dispatch_block_t step;
-
 @property (nonatomic, strong) RJIterator * nest;
 @property (nonatomic, strong) id value;
 @property (nonatomic, strong) id error;
@@ -143,8 +142,6 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 @end
 
 @implementation RJIterator
-//@synthesize step = _step;
-//@synthesize recyle = _recyle;
 @synthesize nest = _nest;
 @synthesize value = _value;
 @synthesize error = _error;
@@ -167,6 +164,8 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 }
 
 - (void)dealloc {
+    NSLog(@"== %@ dealoc", self);
+    
     [_args release];
     [_target release];
     [_signature release];
@@ -386,7 +385,6 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
         _done = YES;
     }
     
-    //pt1://返回点
     //NSLog(@"end of next");
     
     [RJIteratorStack pop];
@@ -532,6 +530,22 @@ RJAsyncEpilog * rj_async(dispatch_block_t block) {
                         step();
                     });
                 });
+            }
+            //swift Function
+            else if ([value isKindOfClass:NSClassFromString(@"_SwiftValue")]) {
+                [RJAsyncClosureCaller callWithClosure:value finish:^(id  _Nullable value, id  _Nullable error) {
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        if (error) {
+                            [result release];
+                            result = [RJResult resultWithValue:value error:error done:NO].retain;
+                        }
+                        else {
+                            [result release];
+                            result = [iterator next:value].retain;
+                        }
+                        step();
+                    });
+                }];
             }
             //AnyPromise
             else if (NSClassFromString(@"AnyPromise") &&

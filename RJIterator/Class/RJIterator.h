@@ -1,6 +1,6 @@
 //
 //  RJIterator.h
-//  RJGenerator
+//  RJIterator
 //
 //  Created by renjinkui on 2018/4/12.
 //  Copyright © 2018年 JK. All rights reserved.

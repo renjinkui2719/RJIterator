@@ -14,6 +14,10 @@
 		9148ABC32080EB830057DB14 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9148ABC12080EB830057DB14 /* LaunchScreen.storyboard */; };
 		9148ABC62080EB830057DB14 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 9148ABC52080EB830057DB14 /* main.m */; };
 		9148ABCF2080EBEC0057DB14 /* RJIterator.m in Sources */ = {isa = PBXBuildFile; fileRef = 9148ABCE2080EBEC0057DB14 /* RJIterator.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		91CB6A052081889F004180E0 /* TestsSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91CB6A042081889F004180E0 /* TestsSwift.swift */; };
+		91CB6A08208188CB004180E0 /* Tests.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CB6A06208188CA004180E0 /* Tests.m */; };
+		91CB6A0D208191F6004180E0 /* UserInfoViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 91CB6A0C208191F6004180E0 /* UserInfoViewController.m */; };
+		91CB6A0F2081AD1F004180E0 /* RJAsyncClosureCaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91CB6A0E2081AD1F004180E0 /* RJAsyncClosureCaller.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +33,13 @@
 		9148ABC52080EB830057DB14 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		9148ABCD2080EBEC0057DB14 /* RJIterator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RJIterator.h; sourceTree = "<group>"; };
 		9148ABCE2080EBEC0057DB14 /* RJIterator.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RJIterator.m; sourceTree = "<group>"; };
+		91CB6A032081889E004180E0 /* RJIterator-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "RJIterator-Bridging-Header.h"; sourceTree = "<group>"; };
+		91CB6A042081889F004180E0 /* TestsSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestsSwift.swift; sourceTree = "<group>"; };
+		91CB6A06208188CA004180E0 /* Tests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Tests.m; sourceTree = "<group>"; };
+		91CB6A07208188CA004180E0 /* Tests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Tests.h; sourceTree = "<group>"; };
+		91CB6A0B208191F6004180E0 /* UserInfoViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserInfoViewController.h; sourceTree = "<group>"; };
+		91CB6A0C208191F6004180E0 /* UserInfoViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UserInfoViewController.m; sourceTree = "<group>"; };
+		91CB6A0E2081AD1F004180E0 /* RJAsyncClosureCaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RJAsyncClosureCaller.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,11 +77,17 @@
 				9148ABB72080EB820057DB14 /* AppDelegate.m */,
 				9148ABB92080EB820057DB14 /* ViewController.h */,
 				9148ABBA2080EB830057DB14 /* ViewController.m */,
+				91CB6A0B208191F6004180E0 /* UserInfoViewController.h */,
+				91CB6A0C208191F6004180E0 /* UserInfoViewController.m */,
+				91CB6A07208188CA004180E0 /* Tests.h */,
+				91CB6A06208188CA004180E0 /* Tests.m */,
+				91CB6A042081889F004180E0 /* TestsSwift.swift */,
 				9148ABBC2080EB830057DB14 /* Main.storyboard */,
 				9148ABBF2080EB830057DB14 /* Assets.xcassets */,
 				9148ABC12080EB830057DB14 /* LaunchScreen.storyboard */,
 				9148ABC42080EB830057DB14 /* Info.plist */,
 				9148ABC52080EB830057DB14 /* main.m */,
+				91CB6A032081889E004180E0 /* RJIterator-Bridging-Header.h */,
 			);
 			path = RJIterator;
 			sourceTree = "<group>";
@@ -80,6 +97,7 @@
 			children = (
 				9148ABCD2080EBEC0057DB14 /* RJIterator.h */,
 				9148ABCE2080EBEC0057DB14 /* RJIterator.m */,
+				91CB6A0E2081AD1F004180E0 /* RJAsyncClosureCaller.swift */,
 			);
 			path = Class;
 			sourceTree = "<group>";
@@ -115,6 +133,7 @@
 				TargetAttributes = {
 					9148ABB22080EB820057DB14 = {
 						CreatedOnToolsVersion = 9.2;
+						LastSwiftMigration = 0920;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -157,8 +176,12 @@
 			files = (
 				9148ABBB2080EB830057DB14 /* ViewController.m in Sources */,
 				9148ABCF2080EBEC0057DB14 /* RJIterator.m in Sources */,
+				91CB6A052081889F004180E0 /* TestsSwift.swift in Sources */,
+				91CB6A08208188CB004180E0 /* Tests.m in Sources */,
 				9148ABC62080EB830057DB14 /* main.m in Sources */,
+				91CB6A0D208191F6004180E0 /* UserInfoViewController.m in Sources */,
 				9148ABB82080EB820057DB14 /* AppDelegate.m in Sources */,
+				91CB6A0F2081AD1F004180E0 /* RJAsyncClosureCaller.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -292,11 +315,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = B5VVHWEWBM;
 				INFOPLIST_FILE = RJIterator/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.rjk.RJIterator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "RJIterator/RJIterator-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -305,11 +334,16 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = B5VVHWEWBM;
 				INFOPLIST_FILE = RJIterator/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.rjk.RJIterator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "RJIterator/RJIterator-Bridging-Header.h";
+				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
