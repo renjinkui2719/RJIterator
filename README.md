@@ -3,7 +3,7 @@
 #### 1. 异步的运用
 
 ##### 异步任务
-在RJIterator中,一个RJAsyncClosure类型的闭包就是一个异步任务,可以被RJIterator调度
+在RJIterator中,一个RJAsyncClosure类型的闭包就是一个异步任务,可以被异步调度
 
 RJAsyncClosure 是RJIterator定义的闭包类型：
 
