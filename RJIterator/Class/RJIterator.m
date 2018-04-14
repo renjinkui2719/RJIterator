@@ -9,7 +9,11 @@
 #import "RJIterator.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
+#if DEMO
 #import <RJIterator-Swift.h>
+#else
+#import <RJIterator/RJIterator-Swift.h>
+#endif
 
 #if __has_feature(objc_arc)
 //ARC下存在跳转导致的编译器生成的释放函数执行不到的问题
@@ -512,6 +516,7 @@ RJAsyncEpilog * rj_async(dispatch_block_t block) {
         }
         if (!result.done) {
             id value = result.value;
+            NSString *desc = [value description];
             //闭包
             if ([value isKindOfClass:NSClassFromString(@"__NSGlobalBlock__")] ||
                 [value isKindOfClass:NSClassFromString(@"__NSStackBlock__")] ||
@@ -532,7 +537,10 @@ RJAsyncEpilog * rj_async(dispatch_block_t block) {
                 });
             }
             //swift Function
-            else if ([value isKindOfClass:NSClassFromString(@"_SwiftValue")]) {
+            else if (NSClassFromString(@"_SwiftValue") &&
+                     [value isKindOfClass:NSClassFromString(@"_SwiftValue")] &&
+                     [[value description] containsString:@"(Function)"]
+                     ) {
                 [RJAsyncClosureCaller callWithClosure:value finish:^(id  _Nullable value, id  _Nullable error) {
                     dispatch_async(dispatch_get_main_queue(), ^{
                         if (error) {

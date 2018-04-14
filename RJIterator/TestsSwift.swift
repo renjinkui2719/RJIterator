@@ -20,13 +20,13 @@ fileprivate func talk(name: Any?) -> Any? {
 class TestsSwift: NSObject {
     
     static func verboseTests() {
-//        test1()
-//        test2()
-//        test3()
-//        test4()
-//        test5()
-//        test6()
-//        test7()
+        test1()
+        test2()
+        test3()
+        test4()
+        test5()
+        test6()
+        test7()
         async1()
         async2()
     }
@@ -246,7 +246,7 @@ class TestsSwift: NSObject {
     static func s2() -> RJAsyncClosure {
         return { (callback: @escaping RJAsyncCallback) in
             DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 2, execute: {
-                callback(["b1": 1, "b2":2], NSError.init(domain: "s2", code: -1, userInfo: nil));
+                callback(["b1": 1, "b2":2], /*NSError.init(domain: "s2", code: -1, userInfo: nil)*/nil);
             })
         };
     }
@@ -293,9 +293,38 @@ class TestsSwift: NSObject {
     }
     
 
+    static func s2_error() -> RJAsyncClosure {
+        return { (callback: @escaping RJAsyncCallback) in
+            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 2, execute: {
+                callback(["b1": 1, "b2":2], /*NSError.init(domain: "s2", code: -1, userInfo: nil)*/nil);
+            })
+        };
+    }
     
     static func async2() {
         print("************************ Begin async2 *******************************");
+        rj_async {
+            var v: Any? = nil
+            print("...begin s1")
+            v = rj_yield(s1())
+            print("finis s1, v:\(v)")
+            print("...begin s2")
+            v = rj_yield(s2_error())
+            print("finis s2, v:\(v)")
+            print("...begin s3")
+            v = rj_yield(s3())
+            print("finis s3, v:\(v)")
+            print("...begin s4")
+            v = rj_yield(s4())
+            print("finis s4, v:\(v)")
+            print("all done")
+            }
+            .error{error in
+                print("error happen:\(error)");
+            }
+            .finally {
+                print("finally");
+        }
         print("************************ End async2 *******************************");
     }
 }
