@@ -113,7 +113,7 @@
 
 [self loginWithAccount:@"112233" pwd:@"12345"].promise
 .then(^(NSDictionary *json) {
-    return [self queryInfoWithUid:login_josn[@"uid"] token:login_josn[@"token"]].promise
+    return [self queryInfoWithUid:json[@"uid"] token:json[@"token"]].promise
 })
 .then(^(NSDictionary *json) {
     return [self downloadHeadImage:json[@"url"]].promise
