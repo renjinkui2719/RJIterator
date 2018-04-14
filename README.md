@@ -325,6 +325,35 @@ print("value: \(r.value), done:\(r.done)")
 它又从头开始了,其中原理是: 
 ###### 给next传的值将作为生成器内部上次rj_yield的新返回值,并在下次生成器“苏醒”的时候赋值给左边"cmd"，如果next不传参,则该返回值就是rj_yield()本来包装的那个值. 通过这个特性，可以基于生成器与迭代器变种出许多高效的功能.rj_async块就是基于这个原理.
 
+##### 生成器嵌套
+生成器内部可以再嵌套调用别的生成器,比如我要从1数到9，感觉工作量太大，所以定义3个生成器,每个负责数3个数, 再定义一个总的生成器，内部调用这三个小生成器
+```Swift
+func count_1_3(_: Any?) -> Any? {
+    rj_yield(1)
+    rj_yield(2)
+    return 3
+}
+func count_4_5(_: Any?) -> Any? {
+    rj_yield(4)
+    rj_yield(5)
+    return 6
+}
+func count_7_9(_: Any?) -> Any? {
+    rj_yield(7)
+    rj_yield(8)
+    return 9
+}
+
+func count(_: Any?) -> Any? {
+    rj_yield(RJIterator.init(withFunc: count_1_3, arg: nil))
+    rj_yield(RJIterator.init(withFunc: count_4_5, arg: nil))
+    rj_yield(RJIterator.init(withFunc: count_7_9, arg: nil))
+    return nil
+}
+```
+为count创建迭代器，连续执行next将得到value: 1, 2, 3, 4, 5, 6, 7, 8, 9
+
+
 #### 可能
 苹果文档透露Swift以后的版本可能会新增异步，多任务方面的新特性，所以以后的Swift有可能也会像JS一样支持async,yield,await等功能.
 
