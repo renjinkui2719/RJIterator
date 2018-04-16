@@ -47,7 +47,7 @@
 - (RJAsyncClosure)queryInfoWithUid:(NSString *)uid token:(NSString *)token{
     return ^(RJAsyncCallback callback){
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            callback(@{@"url": @"http://oem96wx6v.bkt.clouddn.com/bizhi-1030-1097-2xx.jpg", @"name": @"LiLei"},
+            callback(@{@"url": @"http://oem96wx6v.bkt.clouddn.com/bizhi-1030-1097-2.jpg", @"name": @"LiLei"},
                      /*[NSError errorWithDomain:NSURLErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Query error, please check network"}]*/nil
                      );
         });
