@@ -366,7 +366,7 @@ func count(_: Any?) -> Any? {
 pod
 
 ```
-pod "RJIterator"
+pod "RJIterator", "~> 1.1.2"
 ```
 
 手动: 
