@@ -9,6 +9,8 @@
 #import "RJIterator.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <setjmp.h>
+
 #if DEMO
 #import <RJIterator-Swift.h>
 #else
@@ -17,6 +19,8 @@
 
 #if __has_feature(objc_arc)
 //ARC下存在跳转导致的编译器生成的释放函数执行不到的问题
+//MRC就可以回避编译器的这种 “干扰”
+//以pod 安装可正常运行,不用手动配MRC
 #error RJIterator Must be compiled with MRC
 #endif
 
@@ -58,7 +62,9 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 }
 
 - (void)dealloc {
-    //NSLog(@"== %@ dealoc", self);
+#if DEMO
+    NSLog(@"== %@ dealoc", self);
+#endif
     if (_error_handler) {
         Block_release(_error_handler);
     }
@@ -98,7 +104,9 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 }
 
 - (void)dealloc {
-    //NSLog(@"== %@ dealoc", self);
+#if DEMO
+    NSLog(@"== %@ dealoc", self);
+#endif
     [_value release];
     [_error release];
     [super dealloc];
@@ -170,8 +178,9 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 }
 
 - (void)dealloc {
-   // NSLog(@"== %@ dealoc", self);
-    
+#if DEMO
+    NSLog(@"== %@ dealoc", self);
+#endif
     [_args release];
     [_target release];
     [_signature release];
@@ -378,6 +387,7 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 #elif defined(__x86_64__)
             asm volatile("movq %0, %%rsp" : : "r"(sp));
 #endif
+            //在新栈上调用wrapper,至此可以认为wrapper,以及生成器函数的运行栈和next无关
             [self wrapper];
         }
     }
@@ -497,15 +507,15 @@ id rj_yield(id value) {
 
 
 RJAsyncEpilog * rj_async(dispatch_block_t block) {
-    RJIterator * __unsafe_unretained iterator = [[RJIterator alloc] initWithStandardBlock:block];
-    RJAsyncEpilog * __unsafe_unretained epilog = [[RJAsyncEpilog alloc] init];
+    RJIterator *  iterator = [[RJIterator alloc] initWithStandardBlock:block];
+    RJAsyncEpilog *  epilog = [[RJAsyncEpilog alloc] init];
     RJResult * __block result = nil;
-
+    
 #define Release() do {\
-    [epilog release];\
-    Block_release(step);\
-    [result release];\
-    [iterator release];\
+[epilog release];\
+Block_release(step);\
+[result release];\
+[iterator release];\
 }while(0);
     
     dispatch_block_t __block step;
@@ -518,7 +528,7 @@ RJAsyncEpilog * rj_async(dispatch_block_t block) {
         }
         if (!result.done) {
             id value = result.value;
-            //闭包
+            //oc闭包
             if ([value isKindOfClass:NSClassFromString(@"__NSGlobalBlock__")] ||
                 [value isKindOfClass:NSClassFromString(@"__NSStackBlock__")] ||
                 [value isKindOfClass:NSClassFromString(@"__NSMallocBlock__")]
@@ -537,7 +547,7 @@ RJAsyncEpilog * rj_async(dispatch_block_t block) {
                     });
                 });
             }
-            //swift Function
+            //swift 闭包
             else if (NSClassFromString(@"_SwiftValue") &&
                      [value isKindOfClass:NSClassFromString(@"_SwiftValue")] &&
                      [[value description] containsString:@"(Function)"]
@@ -564,19 +574,26 @@ RJAsyncEpilog * rj_async(dispatch_block_t block) {
                      ) {
                 id <LikePromise> promise = (id <LikePromise>)value;
                 void (^__block then_block)(id) = NULL;
+                void (^__block catch_block)(id) = NULL;
+                
                 then_block = Block_copy(^(id value){
-                    Block_release(then_block); then_block = NULL;
+                    if (then_block) { Block_release(then_block); then_block = NULL; }
+                    if (catch_block) { Block_release(catch_block); catch_block = NULL; }
+                    
                     [result release];
                     result = [iterator next:value].retain;
                     step();
                 });
-                void (^__block catch_block)(id) = NULL;
+                
                 catch_block = Block_copy(^(id error){
-                    Block_release(catch_block);catch_block = NULL;
+                    if (then_block) { Block_release(then_block); then_block = NULL; }
+                    if (catch_block) { Block_release(catch_block); catch_block = NULL; }
+                    
                     [result release];
                     result = [RJResult resultWithValue:nil error:error done:NO].retain;
                     step();
                 });
+                
                 promise.then(then_block).catch(catch_block);
             }
             else {

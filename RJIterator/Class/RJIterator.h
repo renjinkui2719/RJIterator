@@ -7,7 +7,6 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <setjmp.h>
 
 @class RJResult;
 @class RJIterator;
