@@ -31,8 +31,8 @@
     
     [self.view addSubview:_loginButton];
     
-    [Tests verboseTest];
-    [TestsSwift verboseTests];
+//    [Tests verboseTest];
+//    [TestsSwift verboseTests];
 }
 
 
