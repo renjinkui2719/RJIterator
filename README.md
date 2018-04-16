@@ -192,13 +192,13 @@ RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步�
 
 [self loginWithAccount:@"112233" pwd:@"12345"].promise
 .then(^(NSDictionary *json) {
-    return [self queryInfoWithUid:json[@"uid"] token:json[@"token"]].promise
+    return [self queryInfoWithUid:json[@"uid"] token:json[@"token"]].promise;
 })
 .then(^(NSDictionary *json) {
-    return [self downloadHeadImage:json[@"url"]].promise
+    return [self downloadHeadImage:json[@"url"]].promise;
 })
 .then(^(UIImage *image) {
-    return [self makeEffect:image].promise
+    return [self makeEffect:image].promise;
 })
 .then(^(UIImage *image) {
     /*All done*/
