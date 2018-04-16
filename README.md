@@ -18,16 +18,31 @@ typedef void (^RJAsyncClosure)(RJAsyncCallback _Nonnull callback);
 #### 异步块
 使用rj_async声明一个异步块,表示代码块内部将以异步方式调度执行
 
+Objective-C:
 ```Objective-C
-rj_async {
+rj_async(^{
     //异步代码
-}
+})
 .error(^(id error) {
     //出错处理
 })
 .finally(^{
     //收尾 不论成功还是出错都会执行
 });
+```
+
+Swift:
+```Swift
+rj_async {
+   //...
+}
+.error {error in
+    let error = error as! MyErrorType
+    //...
+}
+.finally {
+    //...
+}
 ```
 
 #### 以登录举例
