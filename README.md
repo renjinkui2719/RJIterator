@@ -112,6 +112,8 @@ rj_async {
 
 rj_async块内部完全以同步方式编写，通过把异步任务包装进rj_yield()，rj_async会自动以异步方式调度它们，不会阻塞主流程，在主观感受上，它们是同步代码,功能逻辑也比较清晰. 
 
+##### rj_async块内部运行在主线程，可以直接在块内部进行UI操作. 因为rj_async仅负责调度提供的异步任务，然后在主线程回调进块内部继续执行，这里async的含义并不是会启动子线程来执行块，而是块内部以异步方式调度,这其中有很大区别，如果rj_async仅仅是启动子线程来达到异步，那不如直接写dispatch_async.
+
 RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步块内直接传给rj_yield()，它会被正确异步调度, 但是只支持AnyPromise,如果不是AnyPromise,如果可以转化的话，使用PromiseKit提供的相关方法转为AnyPromise再使用.
 
 
