@@ -25,16 +25,27 @@ static NSString* talk(NSString *name) {
 @implementation Tests
 
 + (void)verboseTest {
-    [self test1];
-    [self test2];
-    [self test3];
-    [self test4];
-    [self test5];
-    [self test6];
-    [self test7];
-    [self test8];
-    [self testAsync1];
-    [self testAsync2];
+    [self testArc1];
+//    [self test1];
+//    [self test2];
+//    [self test3];
+//    [self test4];
+//    [self test5];
+//    [self test6];
+//    [self test7];
+//    [self test8];
+//    [self testAsync1];
+//    [self testAsync2];
+}
+
++ (id)getObj {
+    return [Tests new];
+}
+
++ (void)testArc1 {
+    Tests *alloced = [self getObj];
+    Tests *__strong stronged = alloced;
+    Tests *__weak weaked = alloced;
 }
 
 + (void)test1 {

@@ -28,6 +28,8 @@ typedef void (^RJAsyncClosure)(RJAsyncCallback _Nonnull callback);
     BOOL _ev_entry_valid;
     void *_stack;
     int _stack_size;
+    BOOL _collect_leak;
+    NSHashTable *_leak_table;
     RJIterator * _nest;
     RJGenetarorFunc _func;
     id _target;

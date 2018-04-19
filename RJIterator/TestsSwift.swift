@@ -8,6 +8,12 @@
 
 import UIKit
 
+class AAA {
+    deinit {
+        print("== AAA deint")
+    }
+}
+
 fileprivate func talk(name: Any?) -> Any? {
     var cmd = ""
     repeat {
@@ -57,6 +63,20 @@ class TestsSwift: NSObject {
         test7()
         async1()
         async2()
+    }
+    
+    deinit {
+        print("== TestsSwift deint")
+    }
+    
+    static func testArc() {
+        let obj1 = TestsSwift.init();
+        let obj2 = AAA.init();
+        let obj3 = obj1;
+    }
+    
+    static func aaa() -> Any{
+        return AAA.init()
     }
     
     static func test0() {

@@ -118,6 +118,8 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 @end
 
 
+static RJIterator *top;
+
 @interface RJIteratorStack: NSObject
 + (void)push:(RJIterator *)iterator;
 + (RJIterator *)pop;
@@ -130,6 +132,7 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
         [NSThread currentThread].threadDictionary[@"RJIteratorStack"] = stack;
     }
     [stack addObject:iterator];
+    top = iterator;
 }
 
 + (RJIterator *)pop {
@@ -137,22 +140,45 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
     RJIterator *iterator = stack.lastObject;
     NSAssert(iterator, @"Error: Iterator Stack of current thread is damadged!!");
     [stack removeLastObject];
+    if (top == iterator) {
+        top = [self top];
+    }
     return iterator;
 }
 
 + (RJIterator *)top {
     NSMutableArray *stack = [NSThread currentThread].threadDictionary[@"RJIteratorStack"];
     RJIterator *iterator = stack.lastObject;
-    NSAssert(iterator, @"Error: Iterator Stack of current thread is damadged!!");
+    //NSAssert(iterator, @"Error: Iterator Stack of current thread is damadged!!");
     return iterator;
 }
 @end
+
+
+
+
+//static void (* origin_release)(Class self, SEL _cmd);
+//static void hook_release(Class self, SEL _cmd) {
+//    origin_release(self, _cmd);
+//}
+//
+//static id (* origin_autorelease)(Class self, SEL _cmd);
+//static id hook_autorelease(Class self, SEL _cmd) {
+//    return origin_autorelease(self, _cmd);
+//}
+
+//static objc_retainAutoreleasedReturnValue;
+//objc_initWeak
+//objc_destroyWeak
+//objc_storeStrong
 
 @interface RJIterator()
 @property (nonatomic, strong) RJIterator * nest;
 @property (nonatomic, strong) id value;
 @property (nonatomic, strong) id error;
 @property (nonatomic, assign) BOOL done;
+@property (nonatomic, assign) BOOL collect_leak;
+@property (nonatomic, strong) NSHashTable * leak_table;
 @end
 
 @implementation RJIterator
@@ -160,6 +186,70 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 @synthesize value = _value;
 @synthesize error = _error;
 @synthesize done = _done;
+@synthesize collect_leak = _collect_leak;
+@synthesize leak_table = _leak_table;
+
+static void fullyrelease_object(id obj) {
+    NSInteger cnt = [obj retainCount];
+    while (cnt > 0) {
+        [obj release];
+        if (cnt > 1) {
+            cnt = [obj retainCount];
+        }
+        else {
+            cnt = 0;
+        }
+    }
+}
+
+
+static id (* origin_allocWithZone)(Class self, SEL _cmd, struct _NSZone *zone);
+static id hook_allocWithZone(Class self, SEL _cmd, struct _NSZone *zone) {
+    id obj = origin_allocWithZone(self, _cmd, zone);
+    
+    RJIterator *it = top;//[RJIteratorStack top];
+    if (it.collect_leak) {
+        [it.leak_table addObject:obj];
+    }
+    
+    return obj;
+}
+
+//static id (* origin_retain)(Class self, SEL _cmd);
+//static id hook_retain(Class self, SEL _cmd) {
+//    return origin_retain(self, _cmd);
+//    RJIterator *it = [RJIteratorStack top];
+//    if (it.collect_leak) {
+//        [it.leak_table addObject:obj];
+//    }
+//}
+
++ (void)load {
+    Method m = NULL;
+    const char *encoding = NULL;
+    //hook allocWithZone
+//    m = class_getClassMethod(NSObject.self, @selector(allocWithZone:));
+//    origin_allocWithZone = (id (*)(id, SEL, struct _NSZone *))method_getImplementation(m);
+//    encoding = method_getTypeEncoding(m);
+//    class_replaceMethod(object_getClass(NSObject.self), @selector(allocWithZone:), (IMP)hook_allocWithZone, encoding);
+    //hook retain
+//    m = class_getInstanceMethod(NSObject.self, @selector(retain));
+//    origin_retain = (id (*)(id, SEL))method_getImplementation(m);
+//    encoding = method_getTypeEncoding(m);
+//    class_replaceMethod(NSObject.self, @selector(retain), (IMP)hook_retain, encoding);
+//    //hook release
+//    m = class_getInstanceMethod(NSObject.self, @selector(release));
+//    origin_release = (void (*)(id, SEL))method_getImplementation(m);
+//    encoding = method_getTypeEncoding(m);
+//    class_replaceMethod(NSObject.self, @selector(release), (IMP)hook_release, encoding);
+//    //hook autorelase
+//    m = class_getInstanceMethod(NSObject.self, @selector(autorelease));
+//    origin_autorelease = (id (*)(id, SEL))method_getImplementation(m);
+//    encoding = method_getTypeEncoding(m);
+//    class_replaceMethod(NSObject.self, @selector(autorelease), (IMP)hook_autorelease, encoding);
+    
+}
+
 
 - (id)init {
     if (self = [super init]) {
@@ -173,6 +263,8 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
         memset(_ev_entry, 0x00, sizeof(jmp_buf));
         
         _args = [NSMutableArray arrayWithCapacity:8].retain;
+        
+        _leak_table = [NSHashTable hashTableWithOptions:NSPointerFunctionsWeakMemory].retain;
     }
     return self;
 }
@@ -199,6 +291,12 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
     if (_ev_entry) {
         free(_ev_entry);
         _ev_entry = NULL;
+    }
+    
+    if (_leak_table.count) {
+        for (id obj in _leak_table) {
+            fullyrelease_object(obj);
+        }
     }
     
     [super dealloc];
@@ -356,6 +454,8 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
         return [RJResult resultWithValue:_value error:_error done:_done];
     }
     [RJIteratorStack push:self];
+    self.collect_leak = YES;
+    
     //设置跳转返回点
     int leave_value = setjmp(_ev_leave);
     //非跳转返回
@@ -402,7 +502,7 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
     }
     
     //NSLog(@"end of next");
-    
+    self.collect_leak = NO;
     [RJIteratorStack pop];
     
     return [RJResult resultWithValue:_value error:_error done:_done];
@@ -624,7 +724,7 @@ Block_release(step);\
 ///////////////////////////////////////////////////////////////////////
 /*
  获取block签名
- 以下代码<<拷贝>>自PromiseKit项目NSMethodSignatureForBlock.m文件，用以获取block签名
+ 以下代码片段 拷贝、拷贝、拷贝 自PromiseKit项目NSMethodSignatureForBlock.m文件，用以获取block签名
  https://github.com/mxcl/PromiseKit/blob/master/Sources/NSMethodSignatureForBlock.m
  //如果和PromiseKit一起编译,不会冲突,这里全是局部类型/变量
  */
@@ -706,3 +806,193 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block) {
     }
     return 0;
 }
+
+
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+/*
+ hook ARC 内存管理函数
+ 以下代码片段 拷贝、拷贝、拷贝 自fishhook项目fishhook.c文件，用以 hook ARC 内存管理函数
+ https://github.com/facebook/fishhook
+ //如果和fishhook一起编译,不会冲突,这里全是局部类型/变量
+ */
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+struct rebinding {
+    const char *name;
+    void *replacement;
+    void **replaced;
+};
+
+#include <dlfcn.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <mach-o/dyld.h>
+#include <mach-o/loader.h>
+#include <mach-o/nlist.h>
+
+#ifdef __LP64__
+typedef struct mach_header_64 mach_header_t;
+typedef struct segment_command_64 segment_command_t;
+typedef struct section_64 section_t;
+typedef struct nlist_64 nlist_t;
+#define LC_SEGMENT_ARCH_DEPENDENT LC_SEGMENT_64
+#else
+typedef struct mach_header mach_header_t;
+typedef struct segment_command segment_command_t;
+typedef struct section section_t;
+typedef struct nlist nlist_t;
+#define LC_SEGMENT_ARCH_DEPENDENT LC_SEGMENT
+#endif
+
+#ifndef SEG_DATA_CONST
+#define SEG_DATA_CONST  "__DATA_CONST"
+#endif
+
+struct rebindings_entry {
+    struct rebinding *rebindings;
+    size_t rebindings_nel;
+    struct rebindings_entry *next;
+};
+
+static struct rebindings_entry *_rebindings_head;
+
+static int prepend_rebindings(struct rebindings_entry **rebindings_head,
+                              struct rebinding rebindings[],
+                              size_t nel) {
+    struct rebindings_entry *new_entry = (struct rebindings_entry *) malloc(sizeof(struct rebindings_entry));
+    if (!new_entry) {
+        return -1;
+    }
+    new_entry->rebindings = (struct rebinding *) malloc(sizeof(struct rebinding) * nel);
+    if (!new_entry->rebindings) {
+        free(new_entry);
+        return -1;
+    }
+    memcpy(new_entry->rebindings, rebindings, sizeof(struct rebinding) * nel);
+    new_entry->rebindings_nel = nel;
+    new_entry->next = *rebindings_head;
+    *rebindings_head = new_entry;
+    return 0;
+}
+
+static void perform_rebinding_with_section(struct rebindings_entry *rebindings,
+                                           section_t *section,
+                                           intptr_t slide,
+                                           nlist_t *symtab,
+                                           char *strtab,
+                                           uint32_t *indirect_symtab) {
+    uint32_t *indirect_symbol_indices = indirect_symtab + section->reserved1;
+    void **indirect_symbol_bindings = (void **)((uintptr_t)slide + section->addr);
+    for (uint i = 0; i < section->size / sizeof(void *); i++) {
+        uint32_t symtab_index = indirect_symbol_indices[i];
+        if (symtab_index == INDIRECT_SYMBOL_ABS || symtab_index == INDIRECT_SYMBOL_LOCAL ||
+            symtab_index == (INDIRECT_SYMBOL_LOCAL   | INDIRECT_SYMBOL_ABS)) {
+            continue;
+        }
+        uint32_t strtab_offset = symtab[symtab_index].n_un.n_strx;
+        char *symbol_name = strtab + strtab_offset;
+        bool symbol_name_longer_than_1 = symbol_name[0] && symbol_name[1];
+        struct rebindings_entry *cur = rebindings;
+        while (cur) {
+            for (uint j = 0; j < cur->rebindings_nel; j++) {
+                if (symbol_name_longer_than_1 &&
+                    strcmp(&symbol_name[1], cur->rebindings[j].name) == 0) {
+                    if (cur->rebindings[j].replaced != NULL &&
+                        indirect_symbol_bindings[i] != cur->rebindings[j].replacement) {
+                        *(cur->rebindings[j].replaced) = indirect_symbol_bindings[i];
+                    }
+                    indirect_symbol_bindings[i] = cur->rebindings[j].replacement;
+                    goto symbol_loop;
+                }
+            }
+            cur = cur->next;
+        }
+    symbol_loop:;
+    }
+}
+
+static void rebind_symbols_for_image(struct rebindings_entry *rebindings,
+                                     const struct mach_header *header,
+                                     intptr_t slide) {
+    Dl_info info;
+    if (dladdr(header, &info) == 0) {
+        return;
+    }
+    
+    segment_command_t *cur_seg_cmd;
+    segment_command_t *linkedit_segment = NULL;
+    struct symtab_command* symtab_cmd = NULL;
+    struct dysymtab_command* dysymtab_cmd = NULL;
+    
+    uintptr_t cur = (uintptr_t)header + sizeof(mach_header_t);
+    for (uint i = 0; i < header->ncmds; i++, cur += cur_seg_cmd->cmdsize) {
+        cur_seg_cmd = (segment_command_t *)cur;
+        if (cur_seg_cmd->cmd == LC_SEGMENT_ARCH_DEPENDENT) {
+            if (strcmp(cur_seg_cmd->segname, SEG_LINKEDIT) == 0) {
+                linkedit_segment = cur_seg_cmd;
+            }
+        } else if (cur_seg_cmd->cmd == LC_SYMTAB) {
+            symtab_cmd = (struct symtab_command*)cur_seg_cmd;
+        } else if (cur_seg_cmd->cmd == LC_DYSYMTAB) {
+            dysymtab_cmd = (struct dysymtab_command*)cur_seg_cmd;
+        }
+    }
+    
+    if (!symtab_cmd || !dysymtab_cmd || !linkedit_segment ||
+        !dysymtab_cmd->nindirectsyms) {
+        return;
+    }
+    
+    // Find base symbol/string table addresses
+    uintptr_t linkedit_base = (uintptr_t)slide + linkedit_segment->vmaddr - linkedit_segment->fileoff;
+    nlist_t *symtab = (nlist_t *)(linkedit_base + symtab_cmd->symoff);
+    char *strtab = (char *)(linkedit_base + symtab_cmd->stroff);
+    
+    // Get indirect symbol table (array of uint32_t indices into symbol table)
+    uint32_t *indirect_symtab = (uint32_t *)(linkedit_base + dysymtab_cmd->indirectsymoff);
+    
+    cur = (uintptr_t)header + sizeof(mach_header_t);
+    for (uint i = 0; i < header->ncmds; i++, cur += cur_seg_cmd->cmdsize) {
+        cur_seg_cmd = (segment_command_t *)cur;
+        if (cur_seg_cmd->cmd == LC_SEGMENT_ARCH_DEPENDENT) {
+            if (strcmp(cur_seg_cmd->segname, SEG_DATA) != 0 &&
+                strcmp(cur_seg_cmd->segname, SEG_DATA_CONST) != 0) {
+                continue;
+            }
+            for (uint j = 0; j < cur_seg_cmd->nsects; j++) {
+                section_t *sect =
+                (section_t *)(cur + sizeof(segment_command_t)) + j;
+                if ((sect->flags & SECTION_TYPE) == S_LAZY_SYMBOL_POINTERS) {
+                    perform_rebinding_with_section(rebindings, sect, slide, symtab, strtab, indirect_symtab);
+                }
+                if ((sect->flags & SECTION_TYPE) == S_NON_LAZY_SYMBOL_POINTERS) {
+                    perform_rebinding_with_section(rebindings, sect, slide, symtab, strtab, indirect_symtab);
+                }
+            }
+        }
+    }
+}
+
+
+static int rebind_symbols_image(void *header,
+                         intptr_t slide,
+                         struct rebinding rebindings[],
+                         size_t rebindings_nel) {
+    struct rebindings_entry *rebindings_head = NULL;
+    int retval = prepend_rebindings(&rebindings_head, rebindings, rebindings_nel);
+    rebind_symbols_for_image(rebindings_head, (const struct mach_header *) header, slide);
+    if (rebindings_head) {
+        free(rebindings_head->rebindings);
+    }
+    free(rebindings_head);
+    return retval;
+}
+
+////
+//static void rebind_symbol(const char *name, void *replacement, void **replaced) {
+//    dladdr();
+//    rebind_symbols_image((struct rebinding[1]){{name, replacement, replaced}}, 1);
+//}
+

@@ -14,9 +14,23 @@
 
 @interface ViewController ()
 @property (nonatomic, strong) UIButton *loginButton;
+@property (nonatomic, strong) NSHashTable *ht;
 @end
 
 @implementation ViewController
+
+static void fullyrelease_object(id obj) {
+    NSInteger cnt = [obj retainCount];
+    while (cnt > 0) {
+        [obj release];
+        if (cnt > 1) {
+            cnt = [obj retainCount];
+        }
+        else {
+            cnt = 0;
+        }
+    }
+}
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -31,78 +45,101 @@
     
     [self.view addSubview:_loginButton];
     
+    id obj = [TestsSwift aaa];//[ViewController new];
+    
+    _ht = [NSHashTable hashTableWithOptions:NSPointerFunctionsWeakMemory];
+    NSInteger c = [obj retainCount];
+    [_ht addObject:obj];
+     c = [obj retainCount];
+    [obj retain];
+//    obj = nil;
+     c = [obj retainCount];
+    [obj retain];
+    //    obj = nil;
+    c = [obj retainCount];
+    
+    fullyrelease_object(obj);
 //    [Tests verboseTest];
 //    [TestsSwift verboseTests];
+    NSLog(@"");
 }
 
-
-- (RJAsyncClosure)loginWithAccount:(NSString *)account pwd:(NSString *)pwd {
-    return ^(RJAsyncCallback callback){
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            callback(@{@"uid": @"0001", @"token": @"ffccdd566"}, nil);
-        });
-    };
+- (void)dealloc {
+    NSLog(@"== %@ dealloc", self);
 }
 
-- (RJAsyncClosure)queryInfoWithUid:(NSString *)uid token:(NSString *)token{
-    return ^(RJAsyncCallback callback){
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            callback(@{@"url": @"http://oem96wx6v.bkt.clouddn.com/bizhi-1030-1097-2.jpg", @"name": @"LiLei"},
-                     /*[NSError errorWithDomain:NSURLErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Query error, please check network"}]*/nil
-                     );
-        });
-    };
-}
-
-- (RJAsyncClosure)downloadHeadImage:(NSString *)url{
-    return ^(RJAsyncCallback callback){
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:url]];
-            callback(data ? [UIImage imageWithData:data] : nil,
-                     data ? nil : [NSError errorWithDomain:NSURLErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Download error, please check network"}]);
-        });
-    };
-}
-
-- (RJAsyncClosure)makeEffect:(UIImage *)image{
-    return ^(RJAsyncCallback callback){
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            callback(image, nil);
-        });
-    };
-}
+//- (RJAsyncClosure)loginWithAccount:(NSString *)account pwd:(NSString *)pwd {
+//    return ^(RJAsyncCallback callback){
+//        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+//            callback(@{@"uid": @"0001", @"token": @"ffccdd566"}, [NSObject new]);
+//        });
+//    };
+//}
+//
+//- (RJAsyncClosure)queryInfoWithUid:(NSString *)uid token:(NSString *)token{
+//    return ^(RJAsyncCallback callback){
+//        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+//            callback(@{@"url": @"http://oem96wx6v.bkt.clouddn.com/bizhi-1030-1097-2.jpg", @"name": @"LiLei"},
+//                     /*[NSError errorWithDomain:NSURLErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Query error, please check network"}]*/nil
+//                     );
+//        });
+//    };
+//}
+//
+//- (RJAsyncClosure)downloadHeadImage:(NSString *)url{
+//    return ^(RJAsyncCallback callback){
+//        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//            NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:url]];
+//            callback(data ? [UIImage imageWithData:data] : nil,
+//                     data ? nil : [NSError errorWithDomain:NSURLErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Download error, please check network"}]);
+//        });
+//    };
+//}
+//
+//- (RJAsyncClosure)makeEffect:(UIImage *)image{
+//    return ^(RJAsyncCallback callback){
+//        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+//            callback(image, nil);
+//        });
+//    };
+//}
 
 - (void)onLogin:(id)sender {
+    return ;
+    [TestsSwift testArc];
     NSLog(@"==enter %s", __func__);
     NSLog(@"...begin");
     rj_async(^{
         _loginButton.enabled = NO;
         [_loginButton setTitle:@"登录中..." forState:UIControlStateNormal];
         
-        NSLog(@"...begin login");
-        NSDictionary *login_josn = rj_yield( [self loginWithAccount:@"112233" pwd:@"12345"] );
-        NSLog(@"login_josn finish: %@", login_josn);
+        id obj = [ViewController alloc];
+        obj = [obj init];
         
-        NSLog(@"...begin query info");
-        NSDictionary *query_json = rj_yield( [self queryInfoWithUid:login_josn[@"uid"] token:login_josn[@"token"]] );
-        NSLog(@"query info finish: %@", query_json);
+//        NSLog(@"...begin login");
+//        NSDictionary *login_josn = rj_yield( [self loginWithAccount:@"112233" pwd:@"12345"] );
+//        NSLog(@"login_josn finish: %@", login_josn);
         
-        NSLog(@"...begin download image");
-        UIImage *image = rj_yield( [self downloadHeadImage:query_json[@"url"]] );
-        NSLog(@"download image finish: %@", image);
-        
-        NSLog(@"...begin make image effect");
-        UIImage *beautiful_image = rj_yield( [self makeEffect:image] );
-        NSLog(@"make image effect finish: %@", beautiful_image);
-        
-        NSLog(@"all done");
-        
-        UserInfoViewController *vc = [[UserInfoViewController alloc] init];
-        vc.uid = login_josn[@"uid"];
-        vc.token = login_josn[@"token"];
-        vc.name = query_json[@"name"];
-        vc.headimg = beautiful_image;
-        [self presentViewController:vc animated:YES completion:NULL];
+//        NSLog(@"...begin query info");
+//        NSDictionary *query_json = rj_yield( [self queryInfoWithUid:login_josn[@"uid"] token:login_josn[@"token"]] );
+//        NSLog(@"query info finish: %@", query_json);
+//
+//        NSLog(@"...begin download image");
+//        UIImage *image = rj_yield( [self downloadHeadImage:query_json[@"url"]] );
+//        NSLog(@"download image finish: %@", image);
+//
+//        NSLog(@"...begin make image effect");
+//        UIImage *beautiful_image = rj_yield( [self makeEffect:image] );
+//        NSLog(@"make image effect finish: %@", beautiful_image);
+//
+//        NSLog(@"all done");
+//
+//        UserInfoViewController *vc = [[UserInfoViewController alloc] init];
+//        vc.uid = login_josn[@"uid"];
+//        vc.token = login_josn[@"token"];
+//        vc.name = query_json[@"name"];
+//        vc.headimg = beautiful_image;
+//        [self presentViewController:vc animated:YES completion:NULL];
     })
     .error(^(id error) {
         NSLog(@"error happened: %@", error);
