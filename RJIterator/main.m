@@ -5,19 +5,19 @@
 //  Created by renjinkui on 2018/4/13.
 //  Copyright © 2018年 renjinkui. All rights reserved.
 //
-#if 0
+#if 1
 #import <UIKit/UIKit.h>
 #import "AppDelegate.h"
 #import <mach-o/dyld.h>
 
 int main(int argc, char * argv[]) {
-    uint32_t cnt = _dyld_image_count();
-    for (int i =0 ;i < cnt; ++i) {
-        char *name = _dyld_get_image_name(i);
-        struct mach_header *header = _dyld_get_image_header(i);
-        intptr_t slide = _dyld_get_image_vmaddr_slide(i);
-        NSLog(@"name: %s, header:%p, slide:%u", name, header, slide);
-    }
+//    uint32_t cnt = _dyld_image_count();
+//    for (int i =0 ;i < cnt; ++i) {
+//        char *name = _dyld_get_image_name(i);
+//        struct mach_header *header = _dyld_get_image_header(i);
+//        intptr_t slide = _dyld_get_image_vmaddr_slide(i);
+//        NSLog(@"name: %s, header:%p, slide:%u", name, header, slide);
+//    }
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
     }

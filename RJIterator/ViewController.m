@@ -45,10 +45,17 @@ static void fullyrelease_object(id obj) {
     
     [self.view addSubview:_loginButton];
     
-    id obj = [TestsSwift aaa];//[ViewController new];
+    id obj = /*[TestsSwift aaa];*/[ViewController new];
+    NSInteger c = [obj retainCount];
+    @autoreleasepool {
+        [obj autorelease];
+        c = [obj retainCount];
+        NSLog(@"");
+    }
+    
     
     _ht = [NSHashTable hashTableWithOptions:NSPointerFunctionsWeakMemory];
-    NSInteger c = [obj retainCount];
+    
     [_ht addObject:obj];
      c = [obj retainCount];
     [obj retain];

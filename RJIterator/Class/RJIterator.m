@@ -10,6 +10,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <setjmp.h>
+#import <pthread.h>
 
 #if DEMO
 #import <RJIterator-Swift.h>
@@ -118,39 +119,51 @@ static NSMethodSignature *NSMethodSignatureForBlock(id block);
 @end
 
 
-static RJIterator *top;
+static pthread_key_t iterator_stack_key;
+static void destroy_iterator_stack(void * stack) {
+    CFRelease((CFArrayRef)stack);
+}
 
 @interface RJIteratorStack: NSObject
 + (void)push:(RJIterator *)iterator;
 + (RJIterator *)pop;
++ (RJIterator *)top;
 @end
+
 @implementation RJIteratorStack
++ (void)load {
+    pthread_key_create(&iterator_stack_key, destroy_iterator_stack);
+}
+
 + (void)push:(RJIterator *)iterator {
-    NSMutableArray *stack = [NSThread currentThread].threadDictionary[@"RJIteratorStack"];
+    CFMutableArrayRef stack = pthread_getspecific(iterator_stack_key);
     if (!stack) {
-        stack = [NSMutableArray arrayWithCapacity:16];
-        [NSThread currentThread].threadDictionary[@"RJIteratorStack"] = stack;
+        stack = CFArrayCreateMutable(kCFAllocatorSystemDefault, 16, &kCFTypeArrayCallBacks);
+        pthread_setspecific(iterator_stack_key, (void *)stack);
     }
-    [stack addObject:iterator];
-    top = iterator;
+    CFArrayAppendValue(stack, (void *)iterator);
 }
 
 + (RJIterator *)pop {
-    NSMutableArray *stack = [NSThread currentThread].threadDictionary[@"RJIteratorStack"];
-    RJIterator *iterator = stack.lastObject;
-    NSAssert(iterator, @"Error: Iterator Stack of current thread is damadged!!");
-    [stack removeLastObject];
-    if (top == iterator) {
-        top = [self top];
+    CFMutableArrayRef stack = pthread_getspecific(iterator_stack_key);
+    CFIndex count = stack ? CFArrayGetCount(stack) : 0;
+    if (count > 0) {
+        RJIterator *iterator = (RJIterator *)CFArrayGetValueAtIndex(stack, count - 1);
+        [iterator retain];
+        CFArrayRemoveValueAtIndex(stack, count - 1);
+        return iterator.autorelease;
     }
-    return iterator;
+    return nil;
 }
 
 + (RJIterator *)top {
-    NSMutableArray *stack = [NSThread currentThread].threadDictionary[@"RJIteratorStack"];
-    RJIterator *iterator = stack.lastObject;
-    //NSAssert(iterator, @"Error: Iterator Stack of current thread is damadged!!");
-    return iterator;
+    CFMutableArrayRef stack = pthread_getspecific(iterator_stack_key);
+    CFIndex count = stack ? CFArrayGetCount(stack) : 0;
+    if (count > 0) {
+        RJIterator *iterator = (RJIterator *)CFArrayGetValueAtIndex(stack, count - 1);
+        return iterator;
+    }
+    return nil;
 }
 @end
 
@@ -207,7 +220,7 @@ static id (* origin_allocWithZone)(Class self, SEL _cmd, struct _NSZone *zone);
 static id hook_allocWithZone(Class self, SEL _cmd, struct _NSZone *zone) {
     id obj = origin_allocWithZone(self, _cmd, zone);
     
-    RJIterator *it = top;//[RJIteratorStack top];
+    RJIterator *it = [RJIteratorStack top];
     if (it.collect_leak) {
         [it.leak_table addObject:obj];
     }
@@ -228,10 +241,10 @@ static id hook_allocWithZone(Class self, SEL _cmd, struct _NSZone *zone) {
     Method m = NULL;
     const char *encoding = NULL;
     //hook allocWithZone
-//    m = class_getClassMethod(NSObject.self, @selector(allocWithZone:));
-//    origin_allocWithZone = (id (*)(id, SEL, struct _NSZone *))method_getImplementation(m);
-//    encoding = method_getTypeEncoding(m);
-//    class_replaceMethod(object_getClass(NSObject.self), @selector(allocWithZone:), (IMP)hook_allocWithZone, encoding);
+    m = class_getClassMethod(NSObject.self, @selector(allocWithZone:));
+    origin_allocWithZone = (id (*)(id, SEL, struct _NSZone *))method_getImplementation(m);
+    encoding = method_getTypeEncoding(m);
+    class_replaceMethod(object_getClass(NSObject.self), @selector(allocWithZone:), (IMP)hook_allocWithZone, encoding);
     //hook retain
 //    m = class_getInstanceMethod(NSObject.self, @selector(retain));
 //    origin_retain = (id (*)(id, SEL))method_getImplementation(m);
@@ -295,7 +308,7 @@ static id hook_allocWithZone(Class self, SEL _cmd, struct _NSZone *zone) {
     
     if (_leak_table.count) {
         for (id obj in _leak_table) {
-            fullyrelease_object(obj);
+            [obj release];
         }
     }
     
@@ -454,6 +467,7 @@ static id hook_allocWithZone(Class self, SEL _cmd, struct _NSZone *zone) {
         return [RJResult resultWithValue:_value error:_error done:_done];
     }
     [RJIteratorStack push:self];
+    
     self.collect_leak = YES;
     
     //设置跳转返回点
@@ -501,8 +515,8 @@ static id hook_allocWithZone(Class self, SEL _cmd, struct _NSZone *zone) {
         _done = YES;
     }
     
-    //NSLog(@"end of next");
     self.collect_leak = NO;
+    
     [RJIteratorStack pop];
     
     return [RJResult resultWithValue:_value error:_error done:_done];
