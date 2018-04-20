@@ -13,8 +13,8 @@
 @class RJAsyncEpilog;
 
 id _Nullable rj_yield(id _Nullable value);
+RJResult * _Nonnull rj_await(id _Nullable value);
 RJAsyncEpilog *_Nonnull rj_async(dispatch_block_t _Nonnull block);
-
 
 
 typedef id _Nullable (*RJGenetarorFunc)(id _Nullable);
@@ -28,8 +28,6 @@ typedef void (^RJAsyncClosure)(RJAsyncCallback _Nonnull callback);
     BOOL _ev_entry_valid;
     void *_stack;
     int _stack_size;
-    BOOL _collect_leak;
-    NSHashTable *_leak_table;
     RJIterator * _nest;
     RJGenetarorFunc _func;
     id _target;
@@ -70,16 +68,10 @@ typedef void (^RJAsyncClosure)(RJAsyncCallback _Nonnull callback);
 @end
 
 
-typedef void (^RJErrorHandler)(id _Nonnull);
-
-typedef RJAsyncEpilog * _Nonnull (^RJErrorConfiger)(RJErrorHandler _Nonnull);
 typedef void  (^RJFinallyConfiger)(dispatch_block_t _Nonnull);
-
 @interface RJAsyncEpilog: NSObject
 {
-    id _error_handler;
     id _finally_handler;
 }
-@property (nonatomic, readonly) RJErrorConfiger _Nonnull error ;
 @property (nonatomic, readonly) RJFinallyConfiger _Nonnull finally ;
 @end

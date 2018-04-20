@@ -10,8 +10,6 @@
 #import <UIKit/UIKit.h>
 #import "RJIterator.h"
 
-
-
 static NSString* talk(NSString *name) {
     rj_yield([NSString stringWithFormat:@"Hello %@, How are you?", name]);
     rj_yield(@"Today is Friday");
@@ -21,32 +19,19 @@ static NSString* talk(NSString *name) {
     return @"==talk done==";
 }
 
-
 @implementation Tests
 
 + (void)verboseTest {
-    [self testArc1];
-//    [self test1];
-//    [self test2];
-//    [self test3];
-//    [self test4];
-//    [self test5];
-//    [self test6];
-//    [self test7];
-//    [self test8];
-//    [self testAsync1];
-//    [self testAsync2];
+    [self test1];
+    [self test2];
+    [self test3];
+    [self test4];
+    [self test5];
+    [self test6];
+    [self test7];
+    [self test8];
 }
 
-+ (id)getObj {
-    return [Tests new];
-}
-
-+ (void)testArc1 {
-    Tests *alloced = [self getObj];
-    Tests *__strong stronged = alloced;
-    Tests *__weak weaked = alloced;
-}
 
 + (void)test1 {
     NSLog(@"************************ Begin %s *******************************", __func__);
@@ -273,74 +258,4 @@ static NSString* talk(NSString *name) {
     NSLog(@"************************ End %s *******************************", __func__);
 }
 
-
-+ (RJAsyncClosure)login:(NSString *)account pwd:(NSString *)pwd {
-    return ^(RJAsyncCallback callback){
-        NSLog(@"login with account:%@, pwd:%@", account, pwd);
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            callback(@{@"uid": @"1001", @"token" : @"787767655"}, nil);
-        });
-    };
-}
-
-+ (RJAsyncClosure)query:(NSString *)uid token:(NSString *)token {
-    return ^(RJAsyncCallback callback){
-        NSLog(@"query with uid:%@, token:%@", uid, token);
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            callback(@{@"headimg": @"http://xxx.jpg"}, nil);
-        });
-    };
-}
-
-+ (RJAsyncClosure)download:(NSString *)url {
-    return ^(RJAsyncCallback callback){
-        NSLog(@"download with url:%@", url);
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            callback([UIImage new], nil);
-        });
-    };
-}
-
-+ (void)testAsync1 {
-    rj_async(^{
-        NSDictionary *login_json = rj_yield( [self login:@"123" pwd:@"123"] );
-        NSLog(@"login_json : %@", login_json);
-        NSDictionary *info_json = rj_yield( [self query:login_json[@"uid"] token:login_json[@"token"]] );
-        NSLog(@"info_json : %@", info_json);
-        UIImage *head_img = rj_yield( [self download:info_json[@"headimg"]] );
-        NSLog(@"head_img: %@", head_img);
-    })
-    .error(^(id error) {
-        NSLog(@"==testAsync1 error happen: %@", error);
-    })
-    .finally(^{
-        NSLog(@"==testAsync1 finally");
-    });
-}
-
-+ (RJAsyncClosure)queryError:(NSString *)uid token:(NSString *)token {
-    return ^(RJAsyncCallback callback){
-        NSLog(@"query with uid:%@, token:%@", uid, token);
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            callback(nil, [NSError errorWithDomain:@"Query info Error" code:0 userInfo:nil]);
-        });
-    };
-}
-
-+ (void)testAsync2 {
-    rj_async(^{
-        NSDictionary *login_json = rj_yield( [self login:@"123" pwd:@"123"] );
-        NSLog(@"login_json : %@", login_json);
-        NSDictionary *info_json = rj_yield( [self queryError:login_json[@"uid"] token:login_json[@"token"]] );
-        NSLog(@"info_json : %@", info_json);
-        UIImage *head_img = rj_yield( [self download:info_json[@"headimg"]] );
-        NSLog(@"head_img: %@", head_img);
-    })
-    .error(^(id error) {
-        NSLog(@"==testAsync2 error happen: %@", error);
-    })
-    .finally(^{
-        NSLog(@"==testAsync2 finally");
-    });
-}
 @end

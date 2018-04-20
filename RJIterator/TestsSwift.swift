@@ -8,12 +8,6 @@
 
 import UIKit
 
-class AAA {
-    deinit {
-        print("== AAA deint")
-    }
-}
-
 fileprivate func talk(name: Any?) -> Any? {
     var cmd = ""
     repeat {
@@ -61,24 +55,13 @@ class TestsSwift: NSObject {
         test5()
         test6()
         test7()
-        async1()
-        async2()
+        TestsSwift.init().onLogin()
     }
     
     deinit {
         print("== TestsSwift deint")
     }
-    
-    static func testArc() {
-        let obj1 = TestsSwift.init();
-        let obj2 = AAA.init();
-        let obj3 = obj1;
-    }
-    
-    static func aaa() -> Any{
-        return AAA.init()
-    }
-    
+
     static func test0() {
         print("************************ Begin test0 *******************************");
         var it: RJIterator;
@@ -339,95 +322,101 @@ class TestsSwift: NSObject {
         print("************************ End test7 *******************************");
     }
     
-    static func s1() -> RJAsyncClosure {
+    //登录
+    func login(account: String, pwd: String) -> RJAsyncClosure {
+        //返回RJAsyncClosure类型闭包
         return { (callback: @escaping RJAsyncCallback) in
-            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 2, execute: {
-                callback(["a1": 1, "a2":2], nil);
+            //以asyncAfter 模拟Http请求 + 回调
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2, execute: {
+                //登录成功
+                callback(["uid": "80022", "token":"67625235555"], nil);
             })
         };
     }
-    static func s2() -> RJAsyncClosure {
+    //查询个人信息
+    func query(uid:String, token: String) -> RJAsyncClosure {
         return { (callback: @escaping RJAsyncCallback) in
-            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 2, execute: {
-                callback(["b1": 1, "b2":2], /*NSError.init(domain: "s2", code: -1, userInfo: nil)*/nil);
+            //以asyncAfter 模拟Http请求 + 回调
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2, execute: {
+                //查询成功
+                callback(["name": "JimGreen", "url":"http://oem96wx6v.bkt.clouddn.com/bizhi-1030-1097-2.jpg"], NSError.init(domain: "s2", code: -1, userInfo: nil));
             })
         };
     }
-    static func s3() -> RJAsyncClosure {
+    //下载头像
+    func download(url: String) -> RJAsyncClosure {
         return {(callback: @escaping RJAsyncCallback) in
-            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 2, execute: {
-                callback(["c1": 1, "c2":2], nil);
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2, execute: {
+                do {
+                    let data: Data? = try Data.init(contentsOf: URL.init(string: url)!)
+                    let iamge = UIImage.init(data: data!)
+                    //下载成功
+                    callback(iamge, nil)
+                } catch let error {
+                    //下载失败
+                    callback(nil, error)
+                }
             })
         };
     }
-    static func s4() -> RJAsyncClosure {
+    //处理头像
+    func handle(image: UIImage) -> RJAsyncClosure {
         return { (callback: @escaping RJAsyncCallback) in
-            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 2, execute: {
-                callback(["d1": 1, "d2":2], nil);
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2, execute: {
+                //处理成功
+                callback(image, nil);
             })
         };
     }
 
-    static func async1() {
-      print("************************ Begin async1 *******************************");
+    @objc func onLogin(_ sender: Any? = nil) {
+      print("************************ Begin onLogin *******************************");
         rj_async {
-            var v: Any? = nil
-            print("...begin s1")
-            v = rj_yield(s1())
-            print("finis s1, v:\(v)")
-            print("...begin s2")
-            v = rj_yield(s2())
-            print("finis s2, v:\(v)")
-            print("...begin s3")
-            v = rj_yield(s3())
-            print("finis s3, v:\(v)")
-            print("...begin s4")
-            v = rj_yield(s4())
-            print("finis s4, v:\(v)")
-            print("all done")
-        }
-        .error{error in
-            print("error happen:\(error)");
+            var result: RJResult
+            
+            print("开始登录")
+            result = rj_await( self.login(account: "112233", pwd: "445566") )
+            if let error = result.error {
+                print("登录失败:\(error)")
+                return
+            }
+            let login_json = result.value as! [String: String]
+            print("登录成功, json:\(login_json)")
+            
+            print("开始查询信息")
+            result = rj_await( self.query(uid: login_json["uid"]!, token: login_json["token"]!) )
+            if let error = result.error {
+                print("查询信息失败:\(error)")
+                return
+            }
+            let info_json = result.value as! [String: String]
+            print("查询信息成功, json:\(info_json)")
+            
+            print("开始下载头像")
+            result = rj_await( self.download(url: info_json["url"]!) )
+            if let error = result.error {
+                print("下载头像失败:\(error)")
+                return
+            }
+            let image = result.value as! UIImage
+            print("下载头像成功, image:\(image)")
+            
+            print("开始处理头像")
+            result = rj_await( self.handle(image: image) )
+            if let error = result.error {
+                print("处理头像失败:\(error)")
+                return
+            }
+            let beautiful_image = result.value as! UIImage
+            print("处理头像成功, beautiful_image:\(beautiful_image)")
+            
+            print("进入详情界面")
         }
         .finally {
-            print("finally");
+             print("登录收尾")
         }
-       print("************************ End async1 *******************************");
+        
+       print("************************ End onLogin *******************************");
     }
-    
 
-    static func s2_error() -> RJAsyncClosure {
-        return { (callback: @escaping RJAsyncCallback) in
-            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 2, execute: {
-                callback(["b1": 1, "b2":2], NSError.init(domain: "s2", code: -1, userInfo: nil));
-            })
-        };
-    }
-    
-    static func async2() {
-        print("************************ Begin async2 *******************************");
-        rj_async {
-            var v: Any? = nil
-            print("...begin s1")
-            v = rj_yield(s1())
-            print("finis s1, v:\(v)")
-            print("...begin s2")
-            v = rj_yield(s2_error())
-            print("finis s2, v:\(v)")
-            print("...begin s3")
-            v = rj_yield(s3())
-            print("finis s3, v:\(v)")
-            print("...begin s4")
-            v = rj_yield(s4())
-            print("finis s4, v:\(v)")
-            print("all done")
-            }
-            .error{error in
-                print("error happen:\(error)");
-            }
-            .finally {
-                print("finally");
-        }
-        print("************************ End async2 *******************************");
-    }
 }
