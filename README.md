@@ -18,7 +18,7 @@ typedef void (^RJAsyncClosure)(RJAsyncCallback _Nonnull callback);
 
 
 #### 异步块
-使用rj_async声明一个异步块,块内是同步风格代码, 但将以异步方式调度执行.
+使用rj_async声明一个异步块,块内是同步风格编写的代码,但将以异步方式调度执行.
 
 Objective-C:
 ```Objective-C
@@ -50,8 +50,9 @@ rj_async {
 
 ```Objective-C
 //登录
-- (RJAsyncClosure)loginWithAccount:(NSString *)account pwd:(NSString *)pwd {
-    return ^(RJAsyncCallback callback){
+- (RJAsyncClosure)loginWithAccount:(NSString *)account pwd:(NSString *)pwd { 
+   //返回RJAsyncClosurele类型block
+    return ^(RJAsyncCallback callback){
        //调用http接口
         post(@"/login", account, pwd, ^(id response, error) {
             callback(response.data, error);
@@ -84,7 +85,7 @@ rj_async {
 }
 ```
 
-##### （2)以同步方式编写代码 
+##### （2)以同步风格编写代码 
 ```Objective-C
 - (void)onLogin:(id)sender {
     rj_async(^{
@@ -145,16 +146,15 @@ rj_async {
 }
 ```
 
-rj_async块内部完全以同步方式编写，通过把异步任务包装进rj_await()，rj_async会自动以异步方式调度它们，不会阻塞主流程，在主观感受上，它们是同步代码,功能逻辑也比较清晰.
+rj_async块内部完全以同步方式编写，通过把异步任务包装进rj_await()，rj_async会自动以异步方式调度它们，不会阻塞主流程，在主观感受上，它们是同步代码,功能逻辑也比较清晰.实际上，任何"等待异步回调 -> 下一步"类型的逻辑都可以转化成如上的写法.
 
 ##### rj_async块内部运行在主线程，可以直接在块内部进行UI操作. 
-这里async的含义并不是启动子线程来执行块，而是块内部以异步方式调度。异步指的是不阻塞,异步不一定就是子线程。
 ##### rj_await可以理解为:"等待异步任务完成并返回结果"，但是这种等待是不阻塞主线程的. 
 
 
 RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步块内直接传给rj_await()，它会被正确异步调度, 但是只支持AnyPromise,如果不是AnyPromise,如果可以转化的话，使用PromiseKit提供的相关方法转为AnyPromise再使用.
 
-下面是对应的Swift写法:
+下面是该功能对应的Swift写法:
 ```Swift
  //登录
     func login(account: String, pwd: String) -> RJAsyncClosure {
@@ -194,7 +194,7 @@ RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步�
         };
     }
     //处理头像
-    func handle(image: UIImage) -> RJAsyncClosure {
+    func makeEffect(image: UIImage) -> RJAsyncClosure {
         return { (callback: @escaping RJAsyncCallback) in
             DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2, execute: {
                 //处理成功
@@ -237,7 +237,7 @@ RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步�
             print("下载头像成功, image:\(image)")
             
             print("开始处理头像")
-            result = rj_await( self.handle(image: image) )
+            result = rj_await( self.makeEffect(image: image) )
             if let error = result.error {
                 print("处理头像失败:\(error)")
                 return
