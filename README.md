@@ -533,13 +533,15 @@ func count(_: Any?) -> Any? {
 #### 可能
 苹果文档透露Swift以后的版本可能会新增异步，多任务方面的新特性，所以以后的Swift有可能也会像JS一样支持async,yield,await等功能.
 
-### 安装
+## 安装
 pod
 
 ```
 use_frameworks!
 
 pod 'RJIterator', '~> 1.1.5'
+
+#import <RJIterator/RJIterator.h>
 ```
 
 手动: 
