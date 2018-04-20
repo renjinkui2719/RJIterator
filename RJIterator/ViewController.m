@@ -100,7 +100,7 @@
         NSLog(@"开始登录...");
         result = rj_await( [self loginWithAccount:@"112233" pwd:@"12345"] );
         if (result.error) {
-            toast(@"登录失败");
+            toast(@"登录失败, error:%@", result.error);
             return ;
         }
         NSDictionary *login_josn = result.value;
@@ -109,7 +109,7 @@
         NSLog(@"开始拉取个人信息...");
         result = rj_await( [self queryInfoWithUid:login_josn[@"uid"] token:login_josn[@"token"]] );
         if (result.error) {
-            toast(@"拉取个人信息失败");
+            toast(@"拉取个人信息失败, error:%@", result.error);
             return ;
         }
         NSDictionary *info_josn = result.value;
@@ -118,7 +118,7 @@
         NSLog(@"开始下载头像...");
         result = rj_await( [self downloadHeadImage:info_josn[@"url"]] );
         if (result.error) {
-            toast(@"下载头像失败");
+            toast(@"下载头像失败, error:%@", result.error);
             return ;
         }
         UIImage *head_image = result.value;
@@ -127,7 +127,7 @@
         NSLog(@"开始处理头像...");
         result = rj_await( [self handle:head_image] );
         if (result.error) {
-            toast(@"处理头像失败");
+            toast(@"处理头像失败, error:%@", result.error);
             return ;
         }
         head_image = result.value;
