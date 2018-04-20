@@ -1,4 +1,6 @@
-生成器与迭代器是ES6和Python的重要概念，初次接触后感受到它们的强大，尤其是在异步调用方面的运用.RJIterator是该功能的OC实现,可以在OC/Swift项目中使用.
+生成器与迭代器是ES6和Python的重要概念，初次接触后感受到它们的强大，尤其是在异步调用方面的运用.
+
+RJIterator是该功能的OC实现,可以在OC/Swift项目中使用.
 
 #### 1. 异步的运用
 
@@ -16,18 +18,15 @@ typedef void (^RJAsyncClosure)(RJAsyncCallback _Nonnull callback);
 
 
 #### 异步块
-使用rj_async声明一个异步块,表示代码块内部将以异步方式调度执行
+使用rj_async声明一个异步块,块内是同步风格编写的代码,但将以异步方式调度执行.
 
 Objective-C:
 ```Objective-C
 rj_async(^{
-    //异步代码
-})
-.error(^(id error) {
-    //出错处理
+    //同步风格的代码
 })
 .finally(^{
-    //收尾 不论成功还是出错都会执行
+    //收尾,总会走这里
 });
 ```
 
@@ -35,10 +34,6 @@ Swift:
 ```Swift
 rj_async {
    //...
-}
-.error {error in
-    let error = error as! MyErrorType
-    //...
 }
 .finally {
     //...
@@ -49,14 +44,16 @@ rj_async {
 
 比如有这样的登录场景: 登录成功 --> 查询个人信息 --> 下载头像 --> 给头像加特效 --> 进入详情.
 
-为了举例，假设要求每一步必须在上一步完成之后进行. 该功能可以使用异步块如下实现
+##### 为了举例，假设要求每一步必须在上一步完成之后进行.
+该功能可以使用异步块如下实现:
 
 ##### （1) 定义异步任务
 
 ```Objective-C
 //登录
-- (RJAsyncClosure)loginWithAccount:(NSString *)account pwd:(NSString *)pwd {
-    return ^(RJAsyncCallback callback){
+- (RJAsyncClosure)loginWithAccount:(NSString *)account pwd:(NSString *)pwd { 
+   //返回RJAsyncClosurele类型block
+    return ^(RJAsyncCallback callback){
        //调用http接口
         post(@"/login", account, pwd, ^(id response, error) {
             callback(response.data, error);
@@ -89,34 +86,187 @@ rj_async {
 }
 ```
 
-##### （2)以同步方式编写代码 
+##### （2)以同步风格编写代码 
 ```Objective-C
 - (void)onLogin:(id)sender {
-    [ProgressHud show];
     rj_async(^{
-        NSDictionary *login_josn = rj_yield( [self loginWithAccount:@"112233" pwd:@"12345"] );
-        NSDictionary *query_json = rj_yield( [self queryInfoWithUid:login_josn[@"uid"] token:login_josn[@"token"]] );
-        UIImage *image = rj_yield( [self downloadHeadImage:query_json[@"url"]] );
-        NSString *beautiful_image = rj_yield( [self makeEffect:image] );
-        NSLog(@"all done");
-        //进入详情界面
-     })
-    .error(^(id error) {
-        NSLog(@"error happened");
+        //每次await 的 result
+        RJResult *result = nil;
+        
+        [ProgressHud show];
+        
+        NSLog(@"开始登录...");
+        result = rj_await( [self loginWithAccount:@"112233" pwd:@"12345"] );
+        if (result.error) {
+            toast(@"登录失败, error:%@", result.error);
+            return ;
+        }
+        NSDictionary *login_josn = result.value;
+        NSLog(@"登录完成,json: %@", login_josn);
+        
+        NSLog(@"开始拉取个人信息...");
+        result = rj_await( [self queryInfoWithUid:login_josn[@"uid"] token:login_josn[@"token"]] );
+        if (result.error) {
+            toast(@"拉取个人信息失败, error:%@", result.error);
+            return ;
+        }
+        NSDictionary *info_josn = result.value;
+        NSLog(@"拉取个人信息完成,json: %@", info_josn);
+        
+        NSLog(@"开始下载头像...");
+        result = rj_await( [self downloadHeadImage:info_josn[@"url"]] );
+        if (result.error) {
+            toast(@"下载头像失败, error:%@", result.error);
+            return ;
+        }
+        UIImage *head_image = result.value;
+        NSLog(@"下载头像完成,head_image: %@", head_image);
+        
+        NSLog(@"开始处理头像...");
+        result = rj_await( [self makeEffect:head_image] );
+        if (result.error) {
+            toast(@"处理头像失败, error:%@", result.error);
+            return ;
+        }
+        head_image = result.value;
+        NSLog(@"处理头像完成,head_image: %@", head_image);
+
+        NSLog(@"全部完成,进入详情界面");
+
+        UserInfoViewController *vc = [[UserInfoViewController alloc] init];
+        vc.uid = login_josn[@"uid"];
+        vc.token = login_josn[@"token"];
+        vc.name = info_josn[@"name"];
+        vc.headimg = head_image;
+        [self presentViewController:vc animated:YES completion:NULL];
     })
     .finally(^{
-        [ProgressHud dismiss];
+        NSLog(@"...finally 收尾");
+       [ProgressHud dismiss];
     });
 }
 ```
 
-rj_async块内部完全以同步方式编写，通过把异步任务包装进rj_yield()，rj_async会自动以异步方式调度它们，不会阻塞主流程，在主观感受上，它们是同步代码,功能逻辑也比较清晰. 
+rj_async块内部完全以同步方式编写，通过把异步任务包装进rj_await()，rj_async会自动以异步方式调度它们，不会阻塞主流程，在主观感受上，它们是同步代码,功能逻辑也比较清晰.实际上，任何"等待异步回调 -> 下一步"类型的逻辑都可以转化成如上的写法.
 
 ##### rj_async块内部运行在主线程，可以直接在块内部进行UI操作. 
-这里async的含义并不是启动子线程来执行块，而是块内部以异步方式调度。异步指的是不阻塞,异步不一定就是子线程。
+##### rj_await可以理解为:"等待异步任务完成并返回结果"，但是这种等待是不阻塞主线程的. 
 
-RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步块内直接传给rj_yield()，它会被正确异步调度, 但是只支持AnyPromise,如果不是AnyPromise,如果可以转化的话，使用PromiseKit提供的相关方法转为AnyPromise再使用.
 
+RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步块内直接传给rj_await()，它会被正确异步调度, 但是只支持AnyPromise,如果不是AnyPromise,如果可以转化的话，使用PromiseKit提供的相关方法转为AnyPromise再使用.
+比如:
+```Swift
+rj_async {
+  let fetchImage = URLSession.shared.dataTask(.promise, with: URL.init(string: "http://oem96wx6v.bkt.clouddn.com/bizhi-1030-1097-2xx.jpg")!).compactMap{ UIImage(data: $0.data) }
+  let result = rj_await( AnyPromise.init(fetchImage) )
+  if let error = result.error {
+      print("下载头像失败:\(error)")
+      return
+  }
+  let image = result.value as! UIImage
+  print("下载头像成功, image:\(image)")
+}
+```
+
+下面是该登录功能举例对应的Swift写法:
+```Swift
+ //登录
+    func login(account: String, pwd: String) -> RJAsyncClosure {
+        //返回RJAsyncClosure类型闭包
+        return { (callback: @escaping RJAsyncCallback) in
+            //以asyncAfter 模拟Http请求 + 回调
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2, execute: {
+                //登录成功
+                callback(["uid": "80022", "token":"67625235555"], nil);
+            })
+        };
+    }
+    //查询个人信息
+    func query(uid:String, token: String) -> RJAsyncClosure {
+        return { (callback: @escaping RJAsyncCallback) in
+            //以asyncAfter 模拟Http请求 + 回调
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2, execute: {
+                //查询成功
+                callback(["name": "JimGreen", "url":"http://oem96wx6v.bkt.clouddn.com/bizhi-1030-1097-2.jpg"], NSError.init(domain: "s2", code: -1, userInfo: nil));
+            })
+        };
+    }
+    //下载头像
+    func download(url: String) -> RJAsyncClosure {
+        return {(callback: @escaping RJAsyncCallback) in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2, execute: {
+                do {
+                    let data: Data? = try Data.init(contentsOf: URL.init(string: url)!)
+                    let iamge = UIImage.init(data: data!)
+                    //下载成功
+                    callback(iamge, nil)
+                } catch let error {
+                    //下载失败
+                    callback(nil, error)
+                }
+            })
+        };
+    }
+    //处理头像
+    func makeEffect(image: UIImage) -> RJAsyncClosure {
+        return { (callback: @escaping RJAsyncCallback) in
+            DispatchQueue.global().asyncAfter(deadline: DispatchTime.now() + 2, execute: {
+                //处理成功
+                callback(image, nil);
+            })
+        };
+    }
+
+    @objc func onLogin(_ sender: Any? = nil) {
+        rj_async {
+            var result: RJResult
+            
+            ProgressHud.show()
+            
+            print("开始登录")
+            result = rj_await( self.login(account: "112233", pwd: "445566") )
+            if let error = result.error {
+                print("登录失败:\(error)")
+                return
+            }
+            let login_json = result.value as! [String: String]
+            print("登录成功, json:\(login_json)")
+            
+            print("开始查询信息")
+            result = rj_await( self.query(uid: login_json["uid"]!, token: login_json["token"]!) )
+            if let error = result.error {
+                print("查询信息失败:\(error)")
+                return
+            }
+            let info_json = result.value as! [String: String]
+            print("查询信息成功, json:\(info_json)")
+            
+            print("开始下载头像")
+            result = rj_await( self.download(url: info_json["url"]!) )
+            if let error = result.error {
+                print("下载头像失败:\(error)")
+                return
+            }
+            let image = result.value as! UIImage
+            print("下载头像成功, image:\(image)")
+            
+            print("开始处理头像")
+            result = rj_await( self.makeEffect(image: image) )
+            if let error = result.error {
+                print("处理头像失败:\(error)")
+                return
+            }
+            let beautiful_image = result.value as! UIImage
+            print("处理头像成功, beautiful_image:\(beautiful_image)")
+            
+            print("进入详情界面")
+        }
+        .finally {
+             print("登录收尾")
+             ProgressHud.dismiss()
+        }
+    }
+```
 
 ##### 对比普通回调方式编写代码 
 如果以普通回调方式,则不论如何逃不出如下模式:
@@ -213,6 +363,9 @@ RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步�
     [ProgressHud dismiss];
 });
 ```
+catch到error后其实根本不知道具体是哪一步出错了,除非对error做明显标识。
+
+每个then块内的变量作用域是局部的，假设要在另外一个块B内访问某个块A内生成的数据，除非把A块内的局部数据变量提成全局的 或者 作为参数传递到下一个B块。
 
 #### 2.生成器与迭代器
 
@@ -380,11 +533,15 @@ func count(_: Any?) -> Any? {
 #### 可能
 苹果文档透露Swift以后的版本可能会新增异步，多任务方面的新特性，所以以后的Swift有可能也会像JS一样支持async,yield,await等功能.
 
-### 安装
+## 安装
 pod
 
 ```
-pod "RJIterator", "~> 1.1.3"
+use_frameworks!
+
+pod 'RJIterator', '~> 1.1.5'
+
+#import <RJIterator/RJIterator.h>
 ```
 
 手动: 
