@@ -122,7 +122,7 @@
             return ;
         }
         UIImage *head_image = result.value;
-        NSLog(@"下载头像完成,json: %@", head_image);
+        NSLog(@"下载头像完成,head_image: %@", head_image);
         
         NSLog(@"开始处理头像...");
         result = rj_await( [self handle:head_image] );
@@ -131,7 +131,7 @@
             return ;
         }
         head_image = result.value;
-        NSLog(@"处理头像完成,json: %@", head_image);
+        NSLog(@"处理头像完成,head_image: %@", head_image);
 
         NSLog(@"全部完成,进入详情界面");
 
