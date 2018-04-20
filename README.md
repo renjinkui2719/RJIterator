@@ -44,7 +44,8 @@ rj_async {
 
 比如有这样的登录场景: 登录成功 --> 查询个人信息 --> 下载头像 --> 给头像加特效 --> 进入详情.
 
-为了举例，假设要求每一步必须在上一步完成之后进行. 该功能可以使用异步块如下实现
+##### 为了举例，假设要求每一步必须在上一步完成之后进行.
+该功能可以使用异步块如下实现:
 
 ##### （1) 定义异步任务
 
@@ -153,8 +154,21 @@ rj_async块内部完全以同步方式编写，通过把异步任务包装进rj_
 
 
 RJIterator兼容PromiseKit.如果已有自己的一个Promise，可以在异步块内直接传给rj_await()，它会被正确异步调度, 但是只支持AnyPromise,如果不是AnyPromise,如果可以转化的话，使用PromiseKit提供的相关方法转为AnyPromise再使用.
+比如:
+```Swift
+rj_async {
+  let fetchImage = URLSession.shared.dataTask(.promise, with: URL.init(string: "http://oem96wx6v.bkt.clouddn.com/bizhi-1030-1097-2xx.jpg")!).compactMap{ UIImage(data: $0.data) }
+  let result = rj_await( AnyPromise.init(fetchImage) )
+  if let error = result.error {
+      print("下载头像失败:\(error)")
+      return
+  }
+  let image = result.value as! UIImage
+  print("下载头像成功, image:\(image)")
+}
+```
 
-下面是该功能对应的Swift写法:
+下面是该登录功能举例对应的Swift写法:
 ```Swift
  //登录
     func login(account: String, pwd: String) -> RJAsyncClosure {
