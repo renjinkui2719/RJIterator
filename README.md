@@ -542,6 +542,8 @@ use_frameworks!
 pod 'RJIterator', '~> 1.1.5'
 
 #import <RJIterator/RJIterator.h>
+
+import PromiseKit
 ```
 
 手动: 
