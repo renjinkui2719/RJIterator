@@ -95,44 +95,43 @@ rj_async {
         
         [ProgressHud show];
         
-        NSLog(@"开始登录...");
+        //开始登录...
         result = rj_await( [self loginWithAccount:@"112233" pwd:@"12345"] );
         if (result.error) {
-            toast(@"登录失败, error:%@", result.error);
+            //登录失败
             return ;
         }
+        //登录完成
         NSDictionary *login_josn = result.value;
-        NSLog(@"登录完成,json: %@", login_josn);
         
-        NSLog(@"开始拉取个人信息...");
+        //开始拉取个人信息...
         result = rj_await( [self queryInfoWithUid:login_josn[@"uid"] token:login_josn[@"token"]] );
         if (result.error) {
-            toast(@"拉取个人信息失败, error:%@", result.error);
+            //拉取个人信息失败
             return ;
         }
+        //拉取个人信息完成
         NSDictionary *info_josn = result.value;
-        NSLog(@"拉取个人信息完成,json: %@", info_josn);
         
-        NSLog(@"开始下载头像...");
+        //开始下载头像...
         result = rj_await( [self downloadHeadImage:info_josn[@"url"]] );
         if (result.error) {
-            toast(@"下载头像失败, error:%@", result.error);
+            //下载头像失败
             return ;
         }
+        //下载头像完成
         UIImage *head_image = result.value;
-        NSLog(@"下载头像完成,head_image: %@", head_image);
         
-        NSLog(@"开始处理头像...");
+        //开始处理头像
         result = rj_await( [self makeEffect:head_image] );
         if (result.error) {
-            toast(@"处理头像失败, error:%@", result.error);
+            //处理头像失败
             return ;
         }
+        //处理头像完成
         head_image = result.value;
-        NSLog(@"处理头像完成,head_image: %@", head_image);
 
-        NSLog(@"全部完成,进入详情界面");
-
+        //全部完成,进入详情界面
         UserInfoViewController *vc = [[UserInfoViewController alloc] init];
         vc.uid = login_josn[@"uid"];
         vc.token = login_josn[@"token"];
@@ -141,7 +140,7 @@ rj_async {
         [self presentViewController:vc animated:YES completion:NULL];
     })
     .finally(^{
-        NSLog(@"...finally 收尾");
+        //收尾
        [ProgressHud dismiss];
     });
 }
@@ -219,50 +218,51 @@ rj_async {
 
     @objc func onLogin(_ sender: Any? = nil) {
         rj_async {
+            //每次await 的 result
             var result: RJResult
             
             ProgressHud.show()
             
-            print("开始登录")
+            //开始登录
             result = rj_await( self.login(account: "112233", pwd: "445566") )
             if let error = result.error {
-                print("登录失败:\(error)")
+                //登录失败
                 return
             }
+            //登录成功
             let login_json = result.value as! [String: String]
-            print("登录成功, json:\(login_json)")
             
-            print("开始查询信息")
+            //开始查询信息
             result = rj_await( self.query(uid: login_json["uid"]!, token: login_json["token"]!) )
             if let error = result.error {
-                print("查询信息失败:\(error)")
+                //查询信息失败
                 return
             }
+            //查询信息成功
             let info_json = result.value as! [String: String]
-            print("查询信息成功, json:\(info_json)")
             
-            print("开始下载头像")
+            //开始下载头像
             result = rj_await( self.download(url: info_json["url"]!) )
             if let error = result.error {
-                print("下载头像失败:\(error)")
+                //下载头像失败
                 return
             }
+            //下载头像成功
             let image = result.value as! UIImage
-            print("下载头像成功, image:\(image)")
             
-            print("开始处理头像")
+            //开始处理头像
             result = rj_await( self.makeEffect(image: image) )
             if let error = result.error {
-                print("处理头像失败:\(error)")
+                //处理头像失败
                 return
             }
+            //处理头像成功
             let beautiful_image = result.value as! UIImage
-            print("处理头像成功, beautiful_image:\(beautiful_image)")
             
-            print("进入详情界面")
+            //进入详情界面
         }
         .finally {
-             print("登录收尾")
+             //登录收尾
              ProgressHud.dismiss()
         }
     }
@@ -339,29 +339,97 @@ rj_async {
 ```
 这时 onLogin方法就掉进了传说中的回调地狱
 
-##### 对比Promise链
+##### 对比Promise链实现
 ```Objective-C
-[ProgressHud show];
+//登录
+- (AnyPromise *)loginWithAccount:(NSString *)account pwd:(NSString *)pwd {
+    //返回AnyPromise
+    return [AnyPromise promiseWithAdapterBlock:^(PMKAdapter  _Nonnull adapter) {
+        //以dispatch_after模拟Http请求
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            //登录成功
+            adapter(@{@"uid": @"0001", @"token": @"ffccdd566"}, nil);
+        });
+    }];
+}
 
-[self loginWithAccount:@"112233" pwd:@"12345"].promise
-.then(^(NSDictionary *json) {
-    return [self queryInfoWithUid:json[@"uid"] token:json[@"token"]].promise;
-})
-.then(^(NSDictionary *json) {
-    return [self downloadHeadImage:json[@"url"]].promise;
-})
-.then(^(UIImage *image) {
-    return [self makeEffect:image].promise;
-})
-.then(^(UIImage *image) {
-    /*All done*/
-})
-.catch(^(id error) {
-    NSLog(@"error happened");
-})
-.finally(^{
-    [ProgressHud dismiss];
-});
+//查询信息
+- (AnyPromise *)queryInfoWithUid:(NSString *)uid token:(NSString *)token{
+    return [AnyPromise promiseWithAdapterBlock:^(PMKAdapter  _Nonnull adapter) {
+        //以dispatch_after模拟Http请求
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            //查询成功
+            adapter(@{@"url": @"http://oem96wx6v.bkt.clouddn.com/bizhi-1030-1097-2.jpg", @"name": @"LiLei"},
+                     /*[NSError errorWithDomain:NSURLErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Query error, please check network"}]*/nil
+                     );
+        });
+    }];
+}
+
+//下载头像
+- (AnyPromise *)downloadHeadImage:(NSString *)url{
+    return [AnyPromise promiseWithAdapterBlock:^(PMKAdapter  _Nonnull adapter) {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            //下载头像
+            NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:url]];
+            adapter(data ? [UIImage imageWithData:data] : nil,
+                     data ? nil : [NSError errorWithDomain:NSURLErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Download error, please check network"}]);
+        });
+    }];
+}
+
+//处理头像
+- (AnyPromise *)makeEffect:(UIImage *)image{
+    return [AnyPromise promiseWithAdapterBlock:^(PMKAdapter  _Nonnull adapter) {
+        //以dispatch_after模拟处理过程
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            //处理成功
+            adapter(image, nil);
+        });
+    }];
+}
+
+- (void)onLogin:(id)sender {
+    //开始登录
+    NSString *__block uid = @"";
+    NSString *__block token = @"";
+    NSString *__block name = @"";
+    [self loginWithAccount:@"112233" pwd:@"445566"]
+    .then(^(NSDictionary *json){
+        //登录成功
+        uid = json[@"uid"];
+        token = json[@"token"];
+        //开始查询信息
+        return [self queryInfoWithUid:json[@"uid"] token:json[@"token"]];
+    })
+    .then(^(NSDictionary *json){
+        //查询信息成功
+        name = json[@"name"];
+        //开始下载头像
+        return [self downloadHeadImage:json[@"url"]];
+    })
+    .then(^(UIImage *image){
+        //下载头像成功
+        //开始处理头像
+        return [self makeEffect:image];
+    })
+    .then(^(UIImage *image){
+        //处理头像成功
+        //进入详情
+        UserInfoViewController *vc = [[UserInfoViewController alloc] init];
+        vc.uid = uid;
+        vc.token = token;
+        vc.name = name;
+        vc.headimg = image;
+        [self presentViewController:vc animated:YES completion:NULL];
+    })
+    .catch(^(id error) {
+        //出错
+    })
+    .ensure(^{
+        //收尾
+    });
+}
 ```
 catch到error后其实根本不知道具体是哪一步出错了,除非对error做明显标识。
 
