@@ -394,6 +394,7 @@ rj_async {
     NSString *__block uid = @"";
     NSString *__block token = @"";
     NSString *__block name = @"";
+    
     [self loginWithAccount:@"112233" pwd:@"445566"]
     .then(^(NSDictionary *json){
         //登录成功
@@ -431,9 +432,25 @@ rj_async {
     });
 }
 ```
-catch到error后其实根本不知道具体是哪一步出错了,除非对error做明显标识。
 
-每个then块内的变量作用域是局部的，假设要在另外一个块B内访问某个块A内生成的数据，除非把A块内的局部数据变量提成全局的 或者 作为参数传递到下一个B块。
+1.catch到error后其实根本不知道具体是哪一步出错了,除非对每个error做明显标识，如果对每个error处理方式不同的话，catch块内难免if else:
+```Objective-C
+if (error.code == LOGIN_ERROR) {
+    //登录出错处理
+}
+else if (error.code == QUERY_ERROR) {
+    //查询信息出错处理
+}
+else if (error.code == DOWNLOAD_ERROR) {
+    //下载出错处理
+}
+else if (error.code == MAKE_EFFECT_ERROR) {
+    //处理头像出错处理
+}
+```
+
+2.每个then块内的变量作用域是局部的，假设要在后面某个then块B内访问A块内得到的数据，除非把A块内的局部变量提成全局的,就像`uid,token,name`，因为在最后一个then块需要用来赋值给详情界面控制器,或者将它们作为参数层层传递到B块,都不够方便.
+
 
 #### 2.生成器与迭代器
 
