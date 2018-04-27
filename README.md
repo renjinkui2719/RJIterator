@@ -651,7 +651,7 @@ RJIterator基于MRC管理内存,混有一个Swift文件， 所以手动添加进
 假如支持catch，出错后统一跳转到catch块:
 ```Objective-C
 rj_async {^
-   //await直接等到value，但目前的实现是等到result，再从result里取得value和错误
+   //await直接等到value,而不是RJResult对象，包含error和value
    id value = rj_await(异步操作);
    id value = rj_await(异步操作);
    id value = rj_await(异步操作);
