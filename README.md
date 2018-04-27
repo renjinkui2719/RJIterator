@@ -638,6 +638,13 @@ RJIterator基于MRC管理内存,混有一个Swift文件， 所以手动添加进
 
 
 
+  
+    
+    
+    
+    
+    
+    
 =========补充线 20180427=======
 
 #### 为何rj_async,rj_await不支持catch
